@@ -1,0 +1,340 @@
+{
+  "categories": [
+    {
+      "id": "20711682-898d-40ab-8a98-b0f0ab68854c",
+      "name": "Home",
+      "description": "",
+      "parentId": null,
+      "createdAt": "2026-05-05T08:39:23.587Z",
+      "updatedAt": "2026-05-05T12:39:21.781Z"
+    },
+    {
+      "id": "5f875537-b74c-451f-b6f9-eeef565f4ca3",
+      "name": "Informatique",
+      "description": "",
+      "parentId": "20711682-898d-40ab-8a98-b0f0ab68854c",
+      "createdAt": "2026-05-05T08:40:50.944Z",
+      "updatedAt": "2026-05-05T08:40:50.944Z"
+    },
+    {
+      "id": "e2afbb1c-4472-4457-b108-27c3c2fbad66",
+      "name": "Oracle",
+      "description": "",
+      "parentId": "5f875537-b74c-451f-b6f9-eeef565f4ca3",
+      "createdAt": "2026-05-05T08:41:04.492Z",
+      "updatedAt": "2026-05-05T08:41:04.492Z"
+    },
+    {
+      "id": "d760c379-be7c-4dbf-9c74-20d517b369f7",
+      "name": "Database",
+      "description": "",
+      "parentId": "e2afbb1c-4472-4457-b108-27c3c2fbad66",
+      "createdAt": "2026-05-05T08:41:13.816Z",
+      "updatedAt": "2026-05-05T08:41:13.816Z"
+    },
+    {
+      "id": "d9061dde-30c6-47fc-a68e-7b7d5deff53d",
+      "name": "Data Engineering",
+      "description": "",
+      "parentId": "5f875537-b74c-451f-b6f9-eeef565f4ca3",
+      "createdAt": "2026-05-05T08:45:12.632Z",
+      "updatedAt": "2026-05-05T08:45:12.632Z"
+    },
+    {
+      "id": "9bd66f87-0b7a-479b-9ebf-0370c8ccf45e",
+      "name": "Python",
+      "description": "",
+      "parentId": "d9061dde-30c6-47fc-a68e-7b7d5deff53d",
+      "createdAt": "2026-05-05T10:09:08.120Z",
+      "updatedAt": "2026-05-05T10:09:08.120Z"
+    },
+    {
+      "id": "40257fce-6dc9-4bb8-beec-7a6015a9e61d",
+      "name": "Data Lakehouse",
+      "description": "",
+      "parentId": "d9061dde-30c6-47fc-a68e-7b7d5deff53d",
+      "createdAt": "2026-05-05T10:11:25.865Z",
+      "updatedAt": "2026-05-05T12:39:10.772Z"
+    },
+    {
+      "id": "4ceb27fd-d887-499e-896d-606246d0491c",
+      "name": "Histoire",
+      "description": "",
+      "parentId": "20711682-898d-40ab-8a98-b0f0ab68854c",
+      "createdAt": "2026-05-05T10:11:53.948Z",
+      "updatedAt": "2026-05-05T10:11:53.948Z"
+    },
+    {
+      "id": "1e179be0-256a-4d56-89dd-b13a3bca341d",
+      "name": "Géographie",
+      "description": "",
+      "parentId": "20711682-898d-40ab-8a98-b0f0ab68854c",
+      "createdAt": "2026-05-05T10:12:00.224Z",
+      "updatedAt": "2026-05-05T10:12:00.224Z"
+    },
+    {
+      "id": "e600bff9-3319-477f-ac08-484ae7c834e8",
+      "name": "Langues",
+      "description": "",
+      "parentId": "20711682-898d-40ab-8a98-b0f0ab68854c",
+      "createdAt": "2026-05-05T10:12:04.980Z",
+      "updatedAt": "2026-05-05T10:12:04.980Z"
+    },
+    {
+      "id": "642e3f7c-b53a-426c-b74b-85222961fa3d",
+      "name": "Cinéma",
+      "description": "",
+      "parentId": "20711682-898d-40ab-8a98-b0f0ab68854c",
+      "createdAt": "2026-05-05T10:12:11.156Z",
+      "updatedAt": "2026-05-05T10:12:11.157Z"
+    },
+    {
+      "id": "aebf0bd0-910d-4111-bbba-3c0b0eb5f279",
+      "name": "Anglais",
+      "description": "",
+      "parentId": "e600bff9-3319-477f-ac08-484ae7c834e8",
+      "createdAt": "2026-05-05T10:12:16.064Z",
+      "updatedAt": "2026-05-05T10:12:16.064Z"
+    },
+    {
+      "id": "51a42471-52b8-4d3b-9536-85b9eed5f939",
+      "name": "Espagnol",
+      "description": "",
+      "parentId": "e600bff9-3319-477f-ac08-484ae7c834e8",
+      "createdAt": "2026-05-05T10:12:19.454Z",
+      "updatedAt": "2026-05-05T10:12:19.454Z"
+    },
+    {
+      "id": "00ffc654-c658-4b68-b002-38868ed0fddd",
+      "name": "Musique",
+      "description": "",
+      "parentId": "20711682-898d-40ab-8a98-b0f0ab68854c",
+      "createdAt": "2026-05-06T08:51:06.625Z",
+      "updatedAt": "2026-05-06T08:51:06.625Z"
+    },
+    {
+      "id": "ccd34409-22e1-4816-a5af-8fc83378af1a",
+      "name": "Etats Unis",
+      "description": "",
+      "parentId": "1e179be0-256a-4d56-89dd-b13a3bca341d",
+      "createdAt": "2026-05-12T10:47:07.573Z",
+      "updatedAt": "2026-05-12T10:47:07.573Z"
+    },
+    {
+      "id": "19a8cb91-3d80-47ce-940a-f8fb29e315ee",
+      "name": "Cybersécurité IA",
+      "description": "",
+      "parentId": "5f875537-b74c-451f-b6f9-eeef565f4ca3",
+      "createdAt": "2026-05-15T18:54:53.165Z",
+      "updatedAt": "2026-05-15T18:55:08.496Z"
+    }
+  ],
+  "notes": [
+    {
+      "id": "f02cae3b-395e-49cc-9679-02c1059a4f0d",
+      "categoryId": "20711682-898d-40ab-8a98-b0f0ab68854c",
+      "title": "",
+      "content": "",
+      "createdAt": "2026-05-05T09:00:22.030Z",
+      "updatedAt": "2026-05-05T12:30:51.009Z"
+    },
+    {
+      "id": "0fe6412a-48e3-413e-b256-35f3ab8a984f",
+      "categoryId": "5f875537-b74c-451f-b6f9-eeef565f4ca3",
+      "title": "",
+      "content": "l'informatique c'est les ordinateurs\n\n---\n\nmais c'est aussi plein de choses qui y sont liées",
+      "createdAt": "2026-05-05T09:00:59.565Z",
+      "updatedAt": "2026-05-05T13:12:16.296Z"
+    },
+    {
+      "id": "62249f0d-19f5-4dfa-a6c2-0ad16fbf27e2",
+      "categoryId": "d9061dde-30c6-47fc-a68e-7b7d5deff53d",
+      "title": "",
+      "content": "Très utile\n\n---\n\n",
+      "createdAt": "2026-05-05T09:01:00.362Z",
+      "updatedAt": "2026-05-05T10:09:27.830Z"
+    },
+    {
+      "id": "286a25a8-6f9f-448e-aad4-9641e6c5bf13",
+      "categoryId": "e2afbb1c-4472-4457-b108-27c3c2fbad66",
+      "title": "",
+      "content": "",
+      "createdAt": "2026-05-05T09:01:38.466Z",
+      "updatedAt": "2026-05-12T12:04:52.230Z"
+    },
+    {
+      "id": "42bed605-9dbc-4d7d-816f-f0e96de7a59e",
+      "categoryId": "d760c379-be7c-4dbf-9c74-20d517b369f7",
+      "title": "",
+      "content": "à ne pas confondre avec data lake et data warehouse\n\n---\n\nIntéret de la base Oracle par rapport aux autres : base convergée : elle peut stocker des données relationnelles, non relationnelles, vecteurs, graph etc",
+      "createdAt": "2026-05-05T09:01:49.627Z",
+      "updatedAt": "2026-05-15T08:45:00.034Z"
+    },
+    {
+      "id": "80ca022c-c388-40f5-8402-d845f710cfc2",
+      "categoryId": "9bd66f87-0b7a-479b-9ebf-0370c8ccf45e",
+      "title": "",
+      "content": "",
+      "createdAt": "2026-05-05T10:09:29.472Z",
+      "updatedAt": "2026-05-05T10:09:29.472Z"
+    },
+    {
+      "id": "54f01396-ab3b-4dbc-932c-8282656c00e9",
+      "categoryId": "40257fce-6dc9-4bb8-beec-7a6015a9e61d",
+      "title": "",
+      "content": "Compromis entre Data Lake (moins cher en volume, données semi/non/ structurées) et Data Warehouse (structuré et + cher)\n\n---\n\n",
+      "createdAt": "2026-05-05T10:11:28.750Z",
+      "updatedAt": "2026-05-05T10:11:34.743Z"
+    },
+    {
+      "id": "d94183e5-4331-458d-97db-31bfb78229a5",
+      "categoryId": "e600bff9-3319-477f-ac08-484ae7c834e8",
+      "title": "",
+      "content": "",
+      "createdAt": "2026-05-05T10:12:12.112Z",
+      "updatedAt": "2026-05-05T10:12:12.112Z"
+    },
+    {
+      "id": "b5037630-63c4-4b28-8491-29594fb22d7b",
+      "categoryId": "51a42471-52b8-4d3b-9536-85b9eed5f939",
+      "title": "",
+      "content": "",
+      "createdAt": "2026-05-05T10:12:20.494Z",
+      "updatedAt": "2026-05-05T10:12:20.494Z"
+    },
+    {
+      "id": "0084836b-d762-4a16-9ff5-4a11dff06932",
+      "categoryId": "642e3f7c-b53a-426c-b74b-85222961fa3d",
+      "title": "",
+      "content": "",
+      "createdAt": "2026-05-05T10:18:56.757Z",
+      "updatedAt": "2026-05-05T10:18:56.757Z"
+    },
+    {
+      "id": "456dcbab-d110-4c7e-950d-961b7564b893",
+      "categoryId": "4ceb27fd-d887-499e-896d-606246d0491c",
+      "title": "",
+      "content": "fait surprenant de la 2e guerre mondiale :",
+      "createdAt": "2026-05-05T13:34:43.203Z",
+      "updatedAt": "2026-05-12T14:17:42.339Z"
+    },
+    {
+      "id": "e5ef0f08-871d-4695-99ac-1af3d08ecd33",
+      "categoryId": "1e179be0-256a-4d56-89dd-b13a3bca341d",
+      "title": "",
+      "content": "",
+      "createdAt": "2026-05-05T13:37:02.820Z",
+      "updatedAt": "2026-05-05T13:37:02.820Z"
+    },
+    {
+      "id": "805ad53a-8c49-49c9-aba0-9f6645da8be0",
+      "categoryId": "00ffc654-c658-4b68-b002-38868ed0fddd",
+      "title": "",
+      "content": "",
+      "createdAt": "2026-05-06T08:51:08.130Z",
+      "updatedAt": "2026-05-06T08:51:08.130Z"
+    },
+    {
+      "id": "e40bea57-91f4-44e1-97b6-4811f2fa31ef",
+      "categoryId": "ccd34409-22e1-4816-a5af-8fc83378af1a",
+      "title": "",
+      "content": "50 Etats:\nAlabama\nAlaska\nArizona\nArkansas\nDelaware\nDakota du Nord\nDakota du Sud\nFloride\nGeorgie\nHawaï\n",
+      "createdAt": "2026-05-12T10:47:34.766Z",
+      "updatedAt": "2026-05-12T10:48:36.154Z"
+    },
+    {
+      "id": "4b115272-d805-404c-94be-ed5513a8b088",
+      "categoryId": "19a8cb91-3d80-47ce-940a-f8fb29e315ee",
+      "title": "",
+      "content": "Nouveaux modèles \"frontier\" (15/05/26) : Claude Mythos et GPT 5.5 Cyber permettent de détecter des vulnérabilités en grand nombre dans divers logiciels et OS.\nPour l'instant les modèles ne sont pas publics: ils sont réservés à la défense donc uniquement partagés à un certain nombre d'acteurs (dont Oracle)\nIl faut : passer le LLM cyber dès le dev du logiciel, se préparer à des attaques assistées par IA très rapides, contrôler strictement l'usage de ce type de modèles (qui utilise, quelles données sont partagées avec, qu'est ce que le modèle répond)\nOracle decreases the time between the patches updates from 4 months (Critical PU) to 1 month (Critical Security PU)\npour les clients : move to cloud (évidemment on les encourage, \"ça va plus vite, plus facile de contrôler les accès (IAM), accès à l'IA simplifié), se mettre à jour vers les versions maintenues, côté DB : encouragent à aller vers ADB pcq les patches sont automatiques, différent de DB on premises\nen gros on se sert des nouveaux modèles IA qui sèment la terreur pour inciter à consommer du cloud et à monter de version sur les produits avec les patches mensuels",
+      "createdAt": "2026-05-15T18:54:54.673Z",
+      "updatedAt": "2026-05-15T19:25:32.940Z"
+    }
+  ],
+  "aiComments": [
+    {
+      "id": "ec8efdb1-797b-46e2-825e-ebc8ea060f16",
+      "noteId": "54f01396-ab3b-4dbc-932c-8282656c00e9",
+      "categoryId": "40257fce-6dc9-4bb8-beec-7a6015a9e61d",
+      "content": "- Facts:\n  - Data Lake and Data Warehouse are two different data management systems.\n  - A Data Lake is generally cheaper in terms of volume but can handle semi/non/structured data.\n  - A Data Warehouse is structured, more expensive, and designed for querying and analysis of large datasets.\n\n- Uncertainties:\n  - The note does not specify the exact cost difference between a Data Lake and a Data Warehouse, making it uncertain how much cheaper a Data Lake actually is compared to a Data Warehouse in practical terms.\n\n- Missing details:\n  - The note does not provide any information about the performance, scalability, or security features of either Data Lake or Data Warehouse. These aspects are crucial when comparing these systems in real-world scenarios.\n\n- Suggestions:\n  - To make a more accurate comparison between Data Lake and Data Warehouse, it would be beneficial to include details about their performance, scalability, and security features. This will provide a clearer understanding of the trade-offs involved when choosing between these two data management systems.\n\n- Contradictions or conflicts (if any):\n  - There are no apparent contradictions or conflicts in the provided note. However, it's important to note that while Data Lakes are designed for handling semi/non/structured data, they can still be structured if properly managed and organized. Similarly, Data Warehouses can handle some forms of unstructured data, although they are primarily designed for structured data.",
+      "model": "mistral:7b",
+      "metadata": {
+        "prompt": "Do not invent facts. Review the note and the category context. Say what is factual, what is uncertain, what is missing, and what could be added. Challenge contradictions. Add useful details only when they are justified. Mark assumptions clearly.\n\nCategory: Data Lakehouse\nCategory description: (none provided)\nNote content:\nCompromis entre Data Lake (moins cher en volume, données semi/non/ structurées) et Data Warehouse (structuré et + cher)\n\n---\n\n\n\nRespond with clear sections:\n- Facts\n- Uncertainties\n- Missing details\n- Suggestions\n- Contradictions or conflicts (if any)\n",
+        "contextLength": 486
+      },
+      "createdAt": "2026-05-11T10:22:27.986Z",
+      "updatedAt": "2026-05-12T10:40:33.063Z",
+      "dismissed": true
+    },
+    {
+      "id": "77006277-bf07-4069-ab69-84012c6c2073",
+      "noteId": "e40bea57-91f4-44e1-97b6-4811f2fa31ef",
+      "categoryId": "ccd34409-22e1-4816-a5af-8fc83378af1a",
+      "content": "- Missing states: California, Colorado, Connecticut, Florida, Idaho, Illinois, Indiana, Iowa, Kansas, Kentucky, Louisiana, Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississippi, Missouri, Montana, Nebraska, Nevada, New Hampshire, New Jersey, New Mexico, New York, North Carolina, Ohio, Oklahoma, Oregon, Pennsylvania, Rhode Island, South Carolina, Tennessee, Texas, Utah, Vermont, Virginia, Washington, West Virginia, Wisconsin, Wyoming\n- Could be added: Capital cities (Sacramento for California, Denver for Colorado, Hartford for Connecticut, etc.) and area codes (for example, 213 for Los Angeles or 718 for New York City) if relevant to the context of the note.\n- Challenge contradiction: Georgia is listed twice, once as a state and once without a name. It should be either \"Georgia\" or \"Georgie\".\n- Assumption: The note is about U.S. states and their names, so I am assuming that the missing items are additional states not yet mentioned in the list.\n- Additional useful detail (if relevant to the context): Number of inhabitants for each state could be added as well, or any other interesting facts such as important cities, major industries, or notable landmarks.",
+      "model": "mistral:7b",
+      "metadata": {
+        "prompt": "Speak in the language used in the note (ex : french if the note is written in french, english if the note is written in english). Do not invent facts. Review the note and the category context. Say what is missing, and what could be added. Challenge contradictions. Add useful details only when they are justified. Mark assumptions clearly.\n\nCategory: Etats Unis\nCategory description: (none provided)\nNote content:\n50 Etats:\nAlabama\nAlaska\nArizona\nArkansas\nDelaware\nDakota du Nord\nDakota du Sud\nFloride\nGeorgie\nHawaï\n\n\nBe concise, clear and precise. Use only bullet points with short sentences or keywords. Avoid generic feedback like \"This note could be improved\". Focus on specific, actionable insights that can help enhance the note based on its content and context.",
+        "contextLength": 473
+      },
+      "dismissed": true,
+      "createdAt": "2026-05-12T14:10:27.707Z",
+      "updatedAt": "2026-05-12T14:14:00.221Z"
+    },
+    {
+      "id": "1db02a35-5489-4fee-a99a-72230109e763",
+      "noteId": "0fe6412a-48e3-413e-b256-35f3ab8a984f",
+      "categoryId": "5f875537-b74c-451f-b6f9-eeef565f4ca3",
+      "content": "Category: Informatique\nCategory description: Computing and Information Technology\nNote content:\n- Computers\n\nMissing:\n- Software (operating systems, applications)\n- Networks and internet\n- Data management and databases\n- Artificial Intelligence and Machine Learning\n- Cybersecurity\n- IT services and support\n\nSuggestions:\n- Expand the note to include other key components of informatique such as software, networks, data management, AI, cybersecurity, IT services.\n- Consider adding examples or specific applications to clarify each component.",
+      "model": "mistral:7b",
+      "metadata": {
+        "prompt": "Speak in the language used in the note (ex : french if the note is written in french, english if the note is written in english). Do not invent facts. Review the note and the category context. Say what is missing, and what could be added. Challenge contradictions. Add useful details only when they are justified. Mark assumptions clearly.\n\nCategory: Informatique\nCategory description: (none provided)\nNote content:\nl'informatique c'est les ordinateurs\n\n---\n\nmais c'est aussi plein de choses qui y sont liées\n\nBe concise, clear and precise. Use only bullet points with short sentences or keywords. Avoid generic feedback like \"This note could be improved\". Focus on specific, actionable insights that can help enhance the note based on its content and context.",
+        "contextLength": 303
+      },
+      "dismissed": true,
+      "createdAt": "2026-05-12T14:14:23.840Z",
+      "updatedAt": "2026-05-12T14:15:51.815Z"
+    },
+    {
+      "id": "b4121295-57a0-48af-b983-1771641787d9",
+      "noteId": "456dcbab-d110-4c7e-950d-961b7564b893",
+      "categoryId": "4ceb27fd-d887-499e-896d-606246d0491c",
+      "content": "Title: Surprising Fact about World War II (Histoire)\n\n- Clarification needed: Specify the exact event or aspect of the Second World War this fact refers to for better understanding.\n- Additional detail suggested: Cite a reputable source for verification, if possible.\n- Potential contradiction check: Verify that the information aligns with established historical facts about WWII to avoid misinformation.\n- Suggested improvement: Incorporate context or background information to provide more depth and understanding.\n- Optional enrichment: Discuss the impact or significance of this fact in relation to the broader events of WWII.",
+      "model": "mistral:7b",
+      "metadata": {
+        "prompt": "Speak in the language used in the note (ex : french if the note is written in french, english if the note is written in english). Do not invent facts. Review the note and the category context. Say what is missing, and what could be added. Challenge contradictions. Add useful details only when they are justified. Mark assumptions clearly.\n\nCategory: Histoire\nCategory description: (none provided)\nNote content:\nfait surprenant de la 2e guerre mondiale :\n\nBe concise, clear and precise. Use only bullet points with short sentences or keywords. Avoid generic feedback like \"This note could be improved\". Focus on specific, actionable insights that can help enhance the note based on its content and context.",
+        "contextLength": 299
+      },
+      "dismissed": true,
+      "createdAt": "2026-05-15T08:42:27.071Z",
+      "updatedAt": "2026-05-15T08:44:00.602Z"
+    },
+    {
+      "id": "22d963a7-e557-4901-8ced-95fb8741d42c",
+      "noteId": "42bed605-9dbc-4d7d-816f-f0e96de7a59e",
+      "categoryId": "d760c379-be7c-4dbf-9c74-20d517b369f7",
+      "content": "Missing information: There is no mention of the purpose or context of comparing Oracle Database with Data Lake and Data Warehouse. Also, the note could benefit from more specific examples or use cases for the types of data (relationnales, non relationnelles, vecteurs, graph) that Oracle Database can store as a converged database.",
+      "model": "mistral:7b",
+      "metadata": {
+        "prompt": "You are a professor that reviews notes.\nFor each part of the note, when something is missing or incorrect : tell it CONCISELY. ALWAYS speak in the language used in the note\nThe note is about :Category: Database\n ; the note : Note content:\nà ne pas confondre avec data lake et data warehouse\n\n---\n\nIntéret de la base Oracle par rapport aux autres : base convergée : elle peut stocker des données relationnelles, non relationnelles, vecteurs, graph etc\n\n",
+        "contextLength": 192
+      },
+      "dismissed": true,
+      "createdAt": "2026-05-15T08:52:58.978Z",
+      "updatedAt": "2026-05-15T20:00:49.592Z"
+    },
+    {
+      "id": "fc89af8d-be9c-4887-8fdf-8d65e00f36ef",
+      "noteId": "4b115272-d805-404c-94be-ed5513a8b088",
+      "categoryId": "19a8cb91-3d80-47ce-940a-f8fb29e315ee",
+      "content": "Voici quelques informations supplémentaires :\n\n* Claude Mythos et GPT 5.5 Cyber sont deux nouveaux modèles d'IA développés pour la détection de vulnérabilités dans divers logiciels et systèmes d'exploitation (OS).\n* Ces modèles ont été créés par des entreprises (non spécifiées) qui les conservent exclusivement pour la défense. Seuls un certain nombre d'acteurs, dont Oracle, en ont accès.\n* Il est recommandé de passer le LLM cyber dès le début du développement du logiciel, ainsi que de se préparer à des attaques assistées par IA très rapides.\n* Les modèles doivent être strictement contrôlés en termes de leur utilisation (qui a accès aux modèles, quels données sont partagées avec qui, etc.).\n* Oracle offre un programme d'actualisation des mises à jour de sécurité plus rapide pour ses clients : le temps entre les mises à jour est passé de 4 mois (Critical PU) à 1 mois (Critical Security PU).\n* Les clients sont encouragés à migrer vers la cloud car cela permet un accès plus facile et plus contrôlable aux IAM et aux IA. Ils sont également encouragés à mettre à jour vers des versions maintenues, avec les mises à jour automatiques disponibles pour Oracle Database (ADB).\n* Les nouveaux modèles d'IA sont utilisés pour créer une effet de terreur en incitant à consommer du cloud et à mettre à jour les produits avec des patches mensuels.",
+      "model": "mistral:7b",
+      "metadata": {
+        "prompt": "Tu es un assistant local qui répond exclusivement en français, même si la note est dans une autre langue.\nAnalyse la note et le contexte ci-dessous et approfondis le. Ta mission : enrichir le contenu, pas le résumer ni le réécrire.\nRègles :\n1. Ne répète ni ne paraphrase la note existante.\n2. Ne redis pas dans tes propres mots les informations déjà présentes.\n3. Signale seulement les points qui méritent un complément, une vérification ou des précisions.\n4. Structure ta réponse en puces et sois concis : 3 puces maximum, parle en mots clés, pas de phrases complètes.\n\nCatégorie : Cybersécurité IA\nNote actuelle :\nNouveaux modèles \"frontier\" (15/05/26) : Claude Mythos et GPT 5.5 Cyber permettent de détecter des vulnérabilités en grand nombre dans divers logiciels et OS.\nPour l'instant les modèles ne sont pas publics: ils sont réservés à la défense donc uniquement partagés à un certain nombre d'acteurs (dont Oracle)\nIl faut : passer le LLM cyber dès le dev du logiciel, se préparer à des attaques assistées par IA très rapides, contrôler strictement l'usage de ce type de modèles (qui utilise, quelles données sont partagées avec, qu'est ce que le modèle répond)\nOracle decreases the time between the patches updates from 4 months (Critical PU) to 1 month (Critical Security PU)\npour les clients : move to cloud (évidemment on les encourage, \"ça va plus vite, plus facile de contrôler les accès (IAM), accès à l'IA simplifié), se mettre à jour vers les versions maintenues, côté DB : encouragent à aller vers ADB pcq les patches sont automatiques, différent de DB on premises\nen gros on se sert des nouveaux modèles IA qui sèment la terreur pour inciter à consommer du cloud et à monter de version sur les produits avec les patches mensuels\n\nMaintenant, fournis uniquement les compléments nécessaires en suivant les règles ci-dessus.",
+        "contextLength": 971
+      },
+      "dismissed": false,
+      "createdAt": "2026-05-19T14:28:42.418Z",
+      "updatedAt": "2026-05-19T14:28:42.418Z"
+    }
+  ]
+}

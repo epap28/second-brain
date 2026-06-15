@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Second Brain</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon"></div>
+        <h1>Second Brain</h1>
+      </div>
+      <nav class="breadcrumb" id="breadcrumb"></nav>
+      <div class="header-actions">
+        <button id="home-add-category-btn" type="button" class="header-button hidden">New category</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <aside id="home-sidebar" class="sidebar">
+        <div class="search-panel card">
+          <h2>Find</h2>
+          <form id="search-form" class="search-form">
+            <input type="text" id="search-input" placeholder="Search..." />
+            <div class="search-row">
+              <select id="search-mode">
+                <option value="category">Categories</option>
+                <option value="content">Content</option>
+              </select>
+              <button type="submit">Search</button>
+            </div>
+          </form>
+          <div id="search-results" class="search-results"></div>
+        </div>
+
+        <div class="data-transfer card">
+          <h2>Data</h2>
+          <button id="export-data-btn" type="button">Export current brain</button>
+          <label class="import-label" for="import-file">Import from file</label>
+          <input type="file" id="import-file" accept="application/json" />
+        </div>
+      </aside>
+
+      <section class="content">
+        <div class="category-panel" id="category-panel">
+          <div class="category-heading" id="category-heading">
+            <div>
+              <p class="section-label">Current category</p>
+              <h2 id="category-title">Home</h2>
+            </div>
+            <div class="category-actions">
+              <button id="add-category-btn">New subcategory</button>
+              <button id="edit-category-btn">Rename</button>
+              <button id="delete-category-btn">Delete</button>
+            </div>
+          </div>
+          <p id="category-description" class="category-description"></p>
+        </div>
+
+        <div class="children-section card hidden" id="children-section">
+          <div class="section-heading">
+            <h3 id="children-heading">Subcategories</h3>
+          </div>
+          <ul id="children-list" class="tree-list"></ul>
+        </div>
+        <div class="notes-section card" id="notes-section">
+          <div class="notes-header">
+            <div>
+              <p class="section-label">Notes</p>
+              <h3>Write freely</h3>
+            </div>
+            <div class="notes-actions">
+              <button id="insert-divider-btn" type="button">Insert divider</button>
+              <span id="autosave-status">Saved</span>
+            </div>
+          </div>
+          <textarea
+            id="note-editor"
+            class="note-editor"
+            placeholder="Start typing your thoughts..."
+          ></textarea>
+        </div>
+      </section>
+
+      <aside id="right-rail" class="right-rail">
+        <div id="ai-feedback-panel" class="ai-feedback card">
+          <div class="ai-comments-header">
+            <div>
+              <p class="section-label">AI Feedback</p>
+              <h3>Assistant comments</h3>
+            </div>
+            <div id="ai-comment-actions" class="ai-comment-actions hidden">
+              <button id="ai-request-btn" type="button">Request AI feedback</button>
+            </div>
+          </div>
+          <div id="ai-comments" class="ai-comments-list"></div>
+        </div>
+
+        <section id="ai-notifications-panel" class="notifications card">
+          <h2>New AI comments</h2>
+          <ul id="ai-notifications" class="ai-notifications"></ul>
+        </section>
+      </aside>
+    </main>
+
+    <div class="modal" id="modal" hidden>
+      <div class="modal-content">
+        <h3 id="modal-title"></h3>
+        <form id="modal-form">
+          <div class="form-group">
+            <label for="modal-input">Name</label>
+            <input type="text" id="modal-input" required />
+          </div>
+          <div class="form-group" id="modal-textarea-group" hidden>
+            <label for="modal-textarea">Description / Content</label>
+            <textarea id="modal-textarea" rows="4"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit">Save</button>
+            <button type="button" id="modal-cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
