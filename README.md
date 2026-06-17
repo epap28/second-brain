@@ -67,6 +67,20 @@ Add the API password as a Cloudflare secret:
 npx wrangler secret put SECOND_BRAIN_PASSWORD
 ```
 
+To receive invite request emails, edit `wrangler.toml`:
+
+```toml
+INVITE_REQUEST_TO_EMAIL = "your-email@example.com"
+```
+
+Then add a Resend API key as a Cloudflare secret:
+
+```powershell
+npx wrangler secret put EMAIL_API_KEY
+```
+
+If `EMAIL_API_KEY` is not configured, invite requests are still stored in D1 and visible in the admin panel.
+
 Deploy the Worker:
 
 ```powershell

@@ -7,6 +7,41 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <div class="access-gate" id="access-gate" hidden>
+      <section class="access-card">
+        <div class="brand access-brand">
+          <div class="brand-icon"></div>
+          <h1>Second Brain</h1>
+        </div>
+
+        <form id="access-form" class="access-form">
+          <h2>Private access</h2>
+          <div class="form-group">
+            <label for="access-password">Password</label>
+            <input type="password" id="access-password" autocomplete="current-password" required />
+          </div>
+          <button type="submit">Unlock</button>
+          <button type="button" class="link-button" id="show-invite-request-btn">Request an invitation code</button>
+          <p id="access-status" class="form-status"></p>
+        </form>
+
+        <form id="invite-request-form" class="access-form hidden">
+          <h2>Request an invitation</h2>
+          <div class="form-group">
+            <label for="invite-request-email">Email</label>
+            <input type="email" id="invite-request-email" autocomplete="email" required />
+          </div>
+          <div class="form-group">
+            <label for="invite-request-message">Message</label>
+            <textarea id="invite-request-message" rows="4" maxlength="1000"></textarea>
+          </div>
+          <button type="submit">Send request</button>
+          <button type="button" class="link-button" id="back-to-access-btn">Back to access</button>
+          <p id="invite-request-status" class="form-status"></p>
+        </form>
+      </section>
+    </div>
+
     <header class="app-header">
       <div class="brand">
         <div class="brand-icon"></div>
@@ -40,6 +75,12 @@
           <button id="export-data-btn" type="button">Export current brain</button>
           <label class="import-label" for="import-file">Import from file</label>
           <input type="file" id="import-file" accept="application/json" />
+        </div>
+
+        <div class="invite-requests card">
+          <h2>Invite requests</h2>
+          <button id="refresh-invite-requests-btn" type="button">Refresh requests</button>
+          <div id="invite-requests-list" class="invite-requests-list"></div>
         </div>
       </aside>
 

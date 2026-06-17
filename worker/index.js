@@ -18,6 +18,15 @@ export default {
       return jsonResponse(request, env, 404, { error: 'Not found' });
     }
 
+    if (segments[1] === 'auth' && segments[2] === 'invite-request' && method === 'POST') {
+      try {
+        return await createInviteRequest(request, env);
+      } catch (error) {
+        console.error('Invite request error:', error);
+        return jsonResponse(request, env, 500, { error: 'Unable to submit invite request' });
+      }
+    }
+
     if (!env.SECOND_BRAIN_PASSWORD) {
       return jsonResponse(request, env, 500, { error: 'SECOND_BRAIN_PASSWORD is not configured' });
     }
@@ -64,6 +73,10 @@ async function handleApiRequest(request, env, url, segments) {
 
   if (resource === 'ai-settings') {
     return handleAiSettingsRoute(request, env, method);
+  }
+
+  if (resource === 'auth') {
+    return handleAuthRoutes(request, env, segments.slice(2), method);
   }
 
   if (resource === 'breadcrumb' && method === 'GET') {
@@ -114,6 +127,143 @@ async function handleApiRequest(request, env, url, segments) {
   }
 
   return jsonResponse(request, env, 404, { error: 'API route not found' });
+}
+
+async function handleAuthRoutes(request, env, pathSegments, method) {
+  if (pathSegments[0] === 'invites' && method === 'POST') {
+    return createInviteCode(request, env);
+  }
+
+  if (pathSegments[0] === 'invites' && method === 'GET') {
+    const rows = await env.DB
+      .prepare(
+        `SELECT id, code, email, invite_request_id, used_at, created_at
+         FROM invite_codes
+         ORDER BY created_at DESC
+         LIMIT 50`
+      )
+      .all();
+    return jsonResponse(request, env, 200, { invites: rows.results || [] });
+  }
+
+  if (pathSegments[0] !== 'invite-requests') {
+    return jsonResponse(request, env, 404, { error: 'Auth route not found' });
+  }
+
+  if (method === 'GET' && pathSegments.length === 1) {
+    const rows = await env.DB
+      .prepare(
+        `SELECT id, email, message, status, created_at, updated_at
+         FROM invite_requests
+         ORDER BY created_at DESC
+         LIMIT 50`
+      )
+      .all();
+    return jsonResponse(request, env, 200, { requests: rows.results || [] });
+  }
+
+  if (method === 'PATCH' && pathSegments[1]) {
+    const body = await readJsonBody(request);
+    const status = normalizeInviteStatus(body?.status);
+    if (!status) {
+      return jsonResponse(request, env, 400, { error: 'Invalid invite request status' });
+    }
+
+    const updatedAt = new Date().toISOString();
+    const result = await env.DB
+      .prepare(
+        `UPDATE invite_requests
+         SET status = ?, updated_at = ?
+         WHERE id = ?`
+      )
+      .bind(status, updatedAt, pathSegments[1])
+      .run();
+
+    if (!result.meta || result.meta.changes === 0) {
+      return jsonResponse(request, env, 404, { error: 'Invite request not found' });
+    }
+
+    return jsonResponse(request, env, 200, { id: pathSegments[1], status, updatedAt });
+  }
+
+  return jsonResponse(request, env, 405, { error: 'Method not allowed for invite requests' });
+}
+
+async function createInviteCode(request, env) {
+  const body = await readJsonBody(request);
+  const email = normalizeEmail(body?.email);
+  const inviteRequestId = typeof body?.inviteRequestId === 'string' ? body.inviteRequestId : '';
+  const id = crypto.randomUUID();
+  const code = createReadableInviteCode();
+  const createdAt = new Date().toISOString();
+
+  await env.DB
+    .prepare(
+      `INSERT INTO invite_codes (id, code, email, invite_request_id, created_at)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .bind(id, code, email || null, inviteRequestId || null, createdAt)
+    .run();
+
+  if (inviteRequestId) {
+    await env.DB
+      .prepare(
+        `UPDATE invite_requests
+         SET status = ?, updated_at = ?
+         WHERE id = ?`
+      )
+      .bind('approved', createdAt, inviteRequestId)
+      .run();
+  }
+
+  return jsonResponse(request, env, 201, {
+    invite: {
+      id,
+      code,
+      email: email || null,
+      inviteRequestId: inviteRequestId || null,
+      createdAt,
+    },
+  });
+}
+
+async function createInviteRequest(request, env) {
+  const body = await readJsonBody(request);
+  const email = normalizeEmail(body?.email);
+  const message = normalizeInviteMessage(body?.message);
+
+  if (!email) {
+    return jsonResponse(request, env, 400, { error: 'A valid email is required' });
+  }
+
+  const existing = await env.DB
+    .prepare('SELECT id FROM invite_requests WHERE email = ? AND status = ?')
+    .bind(email, 'pending')
+    .first();
+
+  if (existing) {
+    return jsonResponse(request, env, 200, {
+      message: 'Invite request already pending',
+      request: { id: existing.id, email, status: 'pending' },
+    });
+  }
+
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+  await env.DB
+    .prepare(
+      `INSERT INTO invite_requests (id, email, message, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(id, email, message, 'pending', now, now)
+    .run();
+
+  await notifyInviteRequest(env, { id, email, message, createdAt: now });
+
+  return jsonResponse(request, env, 201, {
+    message: 'Invite request submitted',
+    request: { id, email, status: 'pending' },
+  });
 }
 
 async function handleCategoryRoutes(request, env, pathSegments, method) {
@@ -273,6 +423,83 @@ function handleAiSettingsRoute(request, env, method) {
       streaming: false,
     },
   });
+}
+
+function normalizeEmail(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const email = value.trim().toLowerCase();
+  if (email.length > 254) {
+    return '';
+  }
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
+}
+
+function normalizeInviteMessage(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim().slice(0, 1000);
+}
+
+function normalizeInviteStatus(value) {
+  if (!['pending', 'approved', 'rejected', 'done'].includes(value)) {
+    return '';
+  }
+  return value;
+}
+
+function createReadableInviteCode() {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .replace(/(.{4})/g, '$1-')
+    .replace(/-$/, '')
+    .toUpperCase();
+}
+
+async function notifyInviteRequest(env, requestInfo) {
+  if (
+    !env.EMAIL_API_KEY ||
+    !env.INVITE_REQUEST_TO_EMAIL ||
+    env.INVITE_REQUEST_TO_EMAIL.includes('replace-with')
+  ) {
+    return;
+  }
+
+  const from = env.INVITE_REQUEST_FROM_EMAIL || 'Second Brain <onboarding@resend.dev>';
+  const subject = `Second Brain invite request: ${requestInfo.email}`;
+  const lines = [
+    'A new Second Brain invite request was submitted.',
+    '',
+    `Email: ${requestInfo.email}`,
+    `Created at: ${requestInfo.createdAt}`,
+    '',
+    'Message:',
+    requestInfo.message || '(no message)',
+  ];
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.EMAIL_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: env.INVITE_REQUEST_TO_EMAIL,
+      subject,
+      text: lines.join('\n'),
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.warn(`Invite request email failed (${response.status}): ${text}`);
+  }
 }
 
 async function loadModel(env) {

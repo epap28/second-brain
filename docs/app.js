@@ -14,11 +14,12 @@ const state = {
   aiSettings: null,
   rootCategoryId: null,
   apiPassword: readStoredApiPassword(),
+  passwordRequestResolver: null,
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await initializeApp();
   setupEventListeners();
+  await initializeApp();
 });
 
 async function initializeApp() {
@@ -33,6 +34,7 @@ async function initializeApp() {
   state.currentCategoryId = rootCategory.id;
   document.body.dataset.view = 'home';
   await loadCategory(rootCategory.id);
+  await refreshInviteRequests();
 }
 
 function setupEventListeners() {
@@ -50,6 +52,95 @@ function setupEventListeners() {
   document.getElementById('note-editor').addEventListener('input', handleEditorInput);
   document.getElementById('insert-divider-btn').addEventListener('click', insertDivider);
   document.getElementById('ai-request-btn').addEventListener('click', requestAiComment);
+  document.getElementById('access-form').addEventListener('submit', handleAccessSubmit);
+  document.getElementById('invite-request-form').addEventListener('submit', handleInviteRequestSubmit);
+  document.getElementById('show-invite-request-btn').addEventListener('click', showInviteRequestForm);
+  document.getElementById('back-to-access-btn').addEventListener('click', showAccessForm);
+  document.getElementById('refresh-invite-requests-btn').addEventListener('click', refreshInviteRequests);
+}
+
+function handleAccessSubmit(event) {
+  event.preventDefault();
+  const input = document.getElementById('access-password');
+  const password = input.value.trim();
+  if (!password) {
+    setAccessStatus('Password is required.');
+    return;
+  }
+
+  storeApiPassword(password);
+  hideAccessGate();
+  if (state.passwordRequestResolver) {
+    state.passwordRequestResolver(password);
+    state.passwordRequestResolver = null;
+  }
+}
+
+async function handleInviteRequestSubmit(event) {
+  event.preventDefault();
+  const emailInput = document.getElementById('invite-request-email');
+  const messageInput = document.getElementById('invite-request-message');
+  const status = document.getElementById('invite-request-status');
+  const email = emailInput.value.trim();
+  const message = messageInput.value.trim();
+
+  status.textContent = 'Sending request...';
+
+  try {
+    const response = await publicApiFetch('/api/auth/invite-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, message }),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.error || 'Unable to submit invite request');
+    }
+
+    emailInput.value = '';
+    messageInput.value = '';
+    status.textContent = body.message === 'Invite request already pending'
+      ? 'A request is already pending for this email.'
+      : 'Request sent. You will be contacted if access is approved.';
+  } catch (error) {
+    status.textContent = error.message || 'Unable to submit invite request.';
+  }
+}
+
+function showAccessGate() {
+  const gate = document.getElementById('access-gate');
+  gate.hidden = false;
+  showAccessForm();
+  document.getElementById('access-password').focus();
+}
+
+function hideAccessGate() {
+  document.getElementById('access-gate').hidden = true;
+  setAccessStatus('');
+}
+
+function showInviteRequestForm() {
+  document.getElementById('access-form').classList.add('hidden');
+  document.getElementById('invite-request-form').classList.remove('hidden');
+  document.getElementById('invite-request-status').textContent = '';
+  document.getElementById('invite-request-email').focus();
+}
+
+function showAccessForm() {
+  document.getElementById('invite-request-form').classList.add('hidden');
+  document.getElementById('access-form').classList.remove('hidden');
+}
+
+function setAccessStatus(text) {
+  document.getElementById('access-status').textContent = text;
+}
+
+function requestApiPassword() {
+  showAccessGate();
+  setAccessStatus('Enter the private access password.');
+  return new Promise((resolve) => {
+    state.passwordRequestResolver = resolve;
+  });
 }
 
 async function loadCategory(categoryId, options = {}) {
@@ -599,6 +690,129 @@ async function refreshLatestAiComments() {
   renderLatestAiComments();
 }
 
+async function refreshInviteRequests() {
+  const container = document.getElementById('invite-requests-list');
+  container.textContent = 'Loading...';
+
+  try {
+    const response = await apiFetch('/api/auth/invite-requests');
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.error || 'Failed to load invite requests');
+    }
+    renderInviteRequests(body.requests || []);
+  } catch (error) {
+    container.textContent = error.message || 'Failed to load invite requests';
+  }
+}
+
+function renderInviteRequests(requests) {
+  const container = document.getElementById('invite-requests-list');
+  container.innerHTML = '';
+
+  if (!requests.length) {
+    container.textContent = 'No requests yet.';
+    return;
+  }
+
+  requests.forEach((request) => {
+    const item = document.createElement('article');
+    item.className = 'invite-request-item';
+
+    const meta = document.createElement('div');
+    meta.className = 'invite-request-meta';
+
+    const email = document.createElement('span');
+    email.className = 'invite-request-email';
+    email.textContent = request.email;
+
+    const status = document.createElement('span');
+    status.className = 'invite-request-status';
+    status.textContent = request.status;
+
+    meta.append(email, status);
+    item.appendChild(meta);
+
+    if (request.message) {
+      const message = document.createElement('p');
+      message.textContent = request.message;
+      item.appendChild(message);
+    }
+
+    const createdAt = document.createElement('p');
+    createdAt.textContent = new Date(request.created_at).toLocaleString();
+    item.appendChild(createdAt);
+
+    if (request.status === 'pending') {
+      const actions = document.createElement('div');
+      actions.className = 'invite-request-actions';
+
+      const createCode = document.createElement('button');
+      createCode.type = 'button';
+      createCode.textContent = 'Create code';
+      createCode.addEventListener('click', () => createInviteCodeForRequest(request));
+
+      const approve = document.createElement('button');
+      approve.type = 'button';
+      approve.textContent = 'Approve';
+      approve.addEventListener('click', () => updateInviteRequestStatus(request.id, 'approved'));
+
+      const reject = document.createElement('button');
+      reject.type = 'button';
+      reject.textContent = 'Reject';
+      reject.addEventListener('click', () => updateInviteRequestStatus(request.id, 'rejected'));
+
+      actions.append(createCode, approve, reject);
+      item.appendChild(actions);
+    }
+
+    container.appendChild(item);
+  });
+}
+
+async function updateInviteRequestStatus(requestId, status) {
+  const response = await apiFetch(`/api/auth/invite-requests/${requestId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json();
+    alert(body.error || 'Failed to update invite request');
+    return;
+  }
+
+  await refreshInviteRequests();
+}
+
+async function createInviteCodeForRequest(request) {
+  const response = await apiFetch('/api/auth/invites', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: request.email,
+      inviteRequestId: request.id,
+    }),
+  });
+  const body = await response.json();
+
+  if (!response.ok) {
+    alert(body.error || 'Failed to create invite code');
+    return;
+  }
+
+  const code = body.invite.code;
+  try {
+    await navigator.clipboard.writeText(code);
+    alert(`Invite code copied: ${code}`);
+  } catch (error) {
+    alert(`Invite code created: ${code}`);
+  }
+
+  await refreshInviteRequests();
+}
+
 function renderAiComments(options = {}) {
   const container = document.getElementById('ai-comments');
   const requestBtn = document.getElementById('ai-request-btn');
@@ -821,15 +1035,21 @@ async function apiFetch(path, options = {}, retrying = false) {
     headers,
   });
 
-  if (response.status !== 401 || retrying) {
+  if (response.status !== 401) {
     return response;
   }
 
-  const password = prompt('Mot de passe Second Brain');
-  if (password === null) {
+  if (retrying) {
+    storeApiPassword('');
+    showAccessGate();
+    setAccessStatus('Wrong password. Try again.');
     return response;
   }
 
-  storeApiPassword(password.trim());
+  await requestApiPassword();
   return apiFetch(path, options, true);
+}
+
+async function publicApiFetch(path, options = {}) {
+  return fetch(`${API_BASE_URL}${path}`, options);
 }

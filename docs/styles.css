@@ -22,6 +22,81 @@ body {
   background: var(--bg);
 }
 
+.access-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: rgba(246, 247, 251, 0.96);
+  box-sizing: border-box;
+}
+
+.access-gate[hidden] {
+  display: none;
+}
+
+.access-card {
+  width: min(440px, 100%);
+  background: var(--card);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: 0 45px 90px -40px rgba(15, 23, 42, 0.55);
+}
+
+.access-brand {
+  margin-bottom: 1.5rem;
+}
+
+.access-brand h1 {
+  margin: 0;
+  font-size: 1.55rem;
+}
+
+.access-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.access-form.hidden {
+  display: none;
+}
+
+.access-form h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.access-form input,
+.access-form textarea {
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  font-size: 0.95rem;
+}
+
+.link-button {
+  background: transparent;
+  color: var(--accent-strong);
+  box-shadow: none;
+  padding: 0.45rem 0.2rem;
+}
+
+.link-button:hover {
+  background: rgba(99, 102, 241, 0.08);
+  box-shadow: none;
+}
+
+.form-status {
+  min-height: 1.2rem;
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 0.9rem;
+}
+
 .app-header {
   display: flex;
   align-items: center;
@@ -252,6 +327,59 @@ button:active {
 
 #import-file {
   display: none;
+}
+
+.invite-requests {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.invite-requests-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.invite-request-item {
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.invite-request-item p {
+  margin: 0.35rem 0 0;
+  color: var(--fg-muted);
+  line-height: 1.45;
+}
+
+.invite-request-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.invite-request-email {
+  font-weight: 600;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+
+.invite-request-status {
+  color: var(--accent-strong);
+  text-transform: capitalize;
+}
+
+.invite-request-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.invite-request-actions button {
+  padding: 0.45rem 0.6rem;
 }
 
 .notifications p {
