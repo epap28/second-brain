@@ -479,8 +479,6 @@ async function createInviteRequest(request, env) {
     .bind(id, email, message, 'pending', now)
     .run();
 
-  await notifyInviteRequest(env, { id, email, message, createdAt: now });
-
   return jsonResponse(request, env, 201, {
     message: 'Invite request submitted',
     request: { id, email, status: 'pending' },
@@ -823,51 +821,6 @@ function timingSafeEqual(a, b) {
     mismatch |= a.charCodeAt(index) ^ b.charCodeAt(index);
   }
   return mismatch === 0;
-}
-
-async function notifyInviteRequest(env, requestInfo) {
-  if (
-    !env.EMAIL_API_KEY ||
-    !env.INVITE_REQUEST_TO_EMAIL ||
-    env.INVITE_REQUEST_TO_EMAIL.includes('replace-with')
-  ) {
-    return;
-  }
-
-  const from = env.INVITE_REQUEST_FROM_EMAIL || 'Second Brain <onboarding@resend.dev>';
-  const subject = `Second Brain invite request: ${requestInfo.email}`;
-  const lines = [
-    'A new Second Brain invite request was submitted.',
-    '',
-    `Email: ${requestInfo.email}`,
-    `Created at: ${requestInfo.createdAt}`,
-    '',
-    'Message:',
-    requestInfo.message || '(no message)',
-  ];
-
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.EMAIL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to: env.INVITE_REQUEST_TO_EMAIL,
-        subject,
-        text: lines.join('\n'),
-      }),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.warn(`Invite request email failed (${response.status}): ${text}`);
-    }
-  } catch (error) {
-    console.warn('Invite request email failed:', error);
-  }
 }
 
 async function readJsonBody(request) {

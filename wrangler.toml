@@ -6,8 +6,6 @@ workers_dev = true
 [vars]
 ALLOWED_ORIGINS = "https://epap28.github.io,http://localhost:3000"
 AI_ENABLED = "false"
-INVITE_REQUEST_TO_EMAIL = "edouardpapillon28@gmail.com"
-INVITE_REQUEST_FROM_EMAIL = "Second Brain <onboarding@resend.dev>"
 
 [[d1_databases]]
 binding = "DB"

@@ -69,22 +69,7 @@ npx.cmd wrangler secret put SETUP_TOKEN
 
 If `SETUP_TOKEN` is not configured, the Worker can still use the old `SECOND_BRAIN_PASSWORD` secret as the setup token.
 
-To receive invite request emails, edit `wrangler.toml`:
-
-```toml
-INVITE_REQUEST_TO_EMAIL = "your-email@example.com"
-INVITE_REQUEST_FROM_EMAIL = "Second Brain <onboarding@resend.dev>"
-```
-
-Then add the Resend API key as a Cloudflare secret:
-
-```powershell
-npx.cmd wrangler secret put EMAIL_API_KEY
-```
-
-Cloudflare will prompt for the value. Paste the Resend API key, then press Enter.
-
-If `EMAIL_API_KEY` is not configured, invite requests are still stored in D1 and visible in the admin panel.
+Invite request emails are disabled for now. Requests are stored in D1 and visible in the admin panel.
 
 Deploy the Worker:
 
@@ -124,7 +109,7 @@ To create invitation codes:
 
 1. Sign in as the admin user.
 2. Open the `Invite requests` panel on the home screen.
-3. Click `Create code` on a pending request.
+3. Click `Envoyer le code` on a pending request.
 4. Send the copied code to the requester.
 
 Users create their account from the `Premiere connexion` section with the invitation code and a new password.

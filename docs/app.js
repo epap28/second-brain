@@ -856,20 +856,15 @@ function renderInviteRequests(requests) {
 
       const createCode = document.createElement('button');
       createCode.type = 'button';
-      createCode.textContent = 'Creer un code';
+      createCode.textContent = 'Envoyer le code';
       createCode.addEventListener('click', () => createInviteCodeForRequest(request));
-
-      const approve = document.createElement('button');
-      approve.type = 'button';
-      approve.textContent = 'Approuver';
-      approve.addEventListener('click', () => updateInviteRequestStatus(request.id, 'approved'));
 
       const reject = document.createElement('button');
       reject.type = 'button';
       reject.textContent = 'Refuser';
       reject.addEventListener('click', () => updateInviteRequestStatus(request.id, 'rejected'));
 
-      actions.append(createCode, approve, reject);
+      actions.append(createCode, reject);
       item.appendChild(actions);
     }
 
