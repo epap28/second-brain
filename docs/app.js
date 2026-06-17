@@ -1,5 +1,7 @@
 const configuredApiBaseUrl = window.SECOND_BRAIN_API_BASE_URL || '';
 const API_BASE_URL = configuredApiBaseUrl.replace(/\/$/, '');
+const APP_URL = window.SECOND_BRAIN_APP_URL || `${window.location.origin}${window.location.pathname}`;
+const ADMIN_EMAIL = window.SECOND_BRAIN_ADMIN_EMAIL || '';
 const SESSION_STORAGE_KEY = 'second-brain-session-token';
 
 const state = {
@@ -163,9 +165,13 @@ async function handleInviteRequestSubmit(event) {
 
     emailInput.value = '';
     messageInput.value = '';
-    status.textContent = body.message === 'Invite request already pending'
-      ? 'Une demande est deja en attente pour cet email.'
-      : 'Demande envoyee. Tu seras contacte si l acces est approuve.';
+    if (body.message === 'Invite request already pending') {
+      status.textContent = 'Une demande est deja en attente pour cet email.';
+      return;
+    }
+
+    status.textContent = 'Demande enregistree. Ton application mail va s ouvrir pour prevenir l admin.';
+    openAdminInviteRequestEmail(email, message);
   } catch (error) {
     status.textContent = error.message || 'Impossible d envoyer la demande.';
   }
@@ -905,14 +911,79 @@ async function createInviteCodeForRequest(request) {
   }
 
   const code = body.invite.code;
-  try {
-    await navigator.clipboard.writeText(code);
-    alert(`Code d invitation copie : ${code}`);
-  } catch (error) {
-    alert(`Code d invitation cree : ${code}`);
-  }
+  const copied = await copyToClipboard(code);
+  alert(
+    copied
+      ? `Code d invitation copie : ${code}\n\nTon application mail va s ouvrir. Clique sur Envoyer pour transmettre le code.`
+      : `Code d invitation cree : ${code}\n\nTon application mail va s ouvrir. Clique sur Envoyer pour transmettre le code.`
+  );
+  openInviteCodeEmail(request.email, code);
 
   await refreshInviteRequests();
+}
+
+function openAdminInviteRequestEmail(email, message) {
+  if (!ADMIN_EMAIL) {
+    return false;
+  }
+
+  return openMailto({
+    to: ADMIN_EMAIL,
+    subject: 'Second Brain - nouvelle demande de code',
+    body: [
+      'Nouvelle demande de code d invitation pour Second Brain.',
+      '',
+      `Email du demandeur : ${email}`,
+      '',
+      'Message :',
+      message || '(aucun message)',
+      '',
+      `Ouvrir l app / admin : ${APP_URL}`,
+      '',
+      'Connecte-toi avec ton compte admin, puis utilise le panneau Demandes d invitation.',
+    ].join('\n'),
+  });
+}
+
+function openInviteCodeEmail(email, code) {
+  return openMailto({
+    to: email,
+    subject: 'Ton code d activation Second Brain',
+    body: [
+      'Bonjour,',
+      '',
+      'Voici ton code d activation pour Second Brain :',
+      '',
+      code,
+      '',
+      `Ouvre l app ici : ${APP_URL}`,
+      '',
+      'Dans la section Premiere connexion, colle ce code puis choisis ton mot de passe.',
+    ].join('\n'),
+  });
+}
+
+function openMailto({ to, subject, body }) {
+  if (!to) {
+    return false;
+  }
+
+  const query = [
+    `subject=${encodeURIComponent(subject)}`,
+    `body=${encodeURIComponent(body)}`,
+  ].join('&');
+
+  window.location.href = `mailto:${to}?${query}`;
+  return true;
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 function renderAiComments(options = {}) {
