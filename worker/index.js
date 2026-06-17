@@ -1,5 +1,5 @@
-const STATE_ID = 'default';
 const DEFAULT_ALLOWED_ORIGINS = ['https://epap28.github.io', 'http://localhost:3000'];
+const SESSION_DAYS = 30;
 
 export default {
   async fetch(request, env) {
@@ -8,35 +8,25 @@ export default {
     const method = request.method.toUpperCase();
 
     if (method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: corsHeaders(request, env),
-      });
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
 
     if (segments[0] !== 'api') {
       return jsonResponse(request, env, 404, { error: 'Not found' });
     }
 
-    if (segments[1] === 'auth' && segments[2] === 'invite-request' && method === 'POST') {
-      try {
-        return await createInviteRequest(request, env);
-      } catch (error) {
-        console.error('Invite request error:', error);
-        return jsonResponse(request, env, 500, { error: 'Unable to submit invite request' });
-      }
-    }
-
-    if (!env.SECOND_BRAIN_PASSWORD) {
-      return jsonResponse(request, env, 500, { error: 'SECOND_BRAIN_PASSWORD is not configured' });
-    }
-
-    if (request.headers.get('X-Second-Brain-Password') !== env.SECOND_BRAIN_PASSWORD) {
-      return jsonResponse(request, env, 401, { error: 'Unauthorized' });
-    }
-
     try {
-      return await handleApiRequest(request, env, url, segments);
+      const publicAuthResponse = await handlePublicAuthRoute(request, env, segments, method);
+      if (publicAuthResponse) {
+        return publicAuthResponse;
+      }
+
+      const auth = await authenticateRequest(request, env);
+      if (!auth) {
+        return jsonResponse(request, env, 401, { error: 'Unauthorized' });
+      }
+
+      return await handleApiRequest(request, env, url, segments, auth);
     } catch (error) {
       console.error('Worker error:', error);
       return jsonResponse(request, env, 500, { error: 'Internal server error' });
@@ -44,31 +34,58 @@ export default {
   },
 };
 
-async function handleApiRequest(request, env, url, segments) {
+async function handlePublicAuthRoute(request, env, segments, method) {
+  if (segments[1] !== 'auth') {
+    return null;
+  }
+
+  const action = segments[2];
+
+  if (action === 'login' && method === 'POST') {
+    return loginUser(request, env);
+  }
+
+  if (action === 'register' && method === 'POST') {
+    return registerUser(request, env);
+  }
+
+  if (action === 'setup' && method === 'POST') {
+    return setupFirstAdmin(request, env);
+  }
+
+  if (action === 'invite-request' && method === 'POST') {
+    return createInviteRequest(request, env);
+  }
+
+  return null;
+}
+
+async function handleApiRequest(request, env, url, segments, auth) {
   const method = request.method.toUpperCase();
   const resource = segments[1];
+  const user = auth.user;
 
   if (resource === 'root' && method === 'GET') {
-    const model = await loadModel(env);
+    const model = await loadModel(env, user.id);
     const root = model.categories.find((category) => category.parentId === null);
     return jsonResponse(request, env, 200, { rootCategory: root });
   }
 
   if (resource === 'tree' && method === 'GET') {
-    const model = await loadModel(env);
+    const model = await loadModel(env, user.id);
     return jsonResponse(request, env, 200, { categories: model.categories, notes: model.notes });
   }
 
   if (resource === 'category') {
-    return handleCategoryRoutes(request, env, segments.slice(2), method);
+    return handleCategoryRoutes(request, env, segments.slice(2), method, user);
   }
 
   if (resource === 'note') {
-    return handleNoteRoutes(request, env, segments.slice(2), method);
+    return handleNoteRoutes(request, env, segments.slice(2), method, user);
   }
 
   if (resource === 'ai-comments') {
-    return handleAiCommentRoutes(request, env, segments.slice(2), method);
+    return handleAiCommentRoutes(request, env, segments.slice(2), method, user);
   }
 
   if (resource === 'ai-settings') {
@@ -76,19 +93,19 @@ async function handleApiRequest(request, env, url, segments) {
   }
 
   if (resource === 'auth') {
-    return handleAuthRoutes(request, env, segments.slice(2), method);
+    return handleAuthRoutes(request, env, segments.slice(2), method, auth);
   }
 
   if (resource === 'breadcrumb' && method === 'GET') {
     const categoryId = segments[2];
-    const model = await loadModel(env);
+    const model = await loadModel(env, user.id);
     return jsonResponse(request, env, 200, { breadcrumb: model.getBreadcrumb(categoryId) });
   }
 
   if (resource === 'search' && method === 'GET') {
     const query = url.searchParams.get('q') || '';
     const mode = url.searchParams.get('mode') || 'category';
-    const model = await loadModel(env);
+    const model = await loadModel(env, user.id);
 
     if (mode === 'content') {
       return jsonResponse(request, env, 200, {
@@ -106,7 +123,7 @@ async function handleApiRequest(request, env, url, segments) {
   }
 
   if (resource === 'export' && method === 'GET') {
-    const model = await loadModel(env);
+    const model = await loadModel(env, user.id);
     return new Response(JSON.stringify(model.serialize(), null, 2), {
       status: 200,
       headers: {
@@ -119,7 +136,7 @@ async function handleApiRequest(request, env, url, segments) {
 
   if (resource === 'import' && method === 'POST') {
     const body = await readJsonBody(request);
-    const model = await importData(env, body?.data);
+    const model = await importData(env, user.id, body?.data);
     return jsonResponse(request, env, 200, {
       message: 'Import successful',
       summary: model.serialize(),
@@ -129,7 +146,23 @@ async function handleApiRequest(request, env, url, segments) {
   return jsonResponse(request, env, 404, { error: 'API route not found' });
 }
 
-async function handleAuthRoutes(request, env, pathSegments, method) {
+async function handleAuthRoutes(request, env, pathSegments, method, auth) {
+  if (pathSegments[0] === 'me' && method === 'GET') {
+    return jsonResponse(request, env, 200, { user: publicUser(auth.user) });
+  }
+
+  if (pathSegments[0] === 'logout' && method === 'POST') {
+    await env.DB
+      .prepare('DELETE FROM sessions WHERE token_hash = ?')
+      .bind(auth.tokenHash)
+      .run();
+    return jsonResponse(request, env, 200, { message: 'Logged out' });
+  }
+
+  if (!isAdmin(auth.user)) {
+    return jsonResponse(request, env, 403, { error: 'Admin access required' });
+  }
+
   if (pathSegments[0] === 'invites' && method === 'POST') {
     return createInviteCode(request, env);
   }
@@ -153,7 +186,7 @@ async function handleAuthRoutes(request, env, pathSegments, method) {
   if (method === 'GET' && pathSegments.length === 1) {
     const rows = await env.DB
       .prepare(
-        `SELECT id, email, message, status, created_at, updated_at
+        `SELECT id, email, message, status, created_at
          FROM invite_requests
          ORDER BY created_at DESC
          LIMIT 50`
@@ -169,24 +202,212 @@ async function handleAuthRoutes(request, env, pathSegments, method) {
       return jsonResponse(request, env, 400, { error: 'Invalid invite request status' });
     }
 
-    const updatedAt = new Date().toISOString();
     const result = await env.DB
       .prepare(
         `UPDATE invite_requests
-         SET status = ?, updated_at = ?
+         SET status = ?
          WHERE id = ?`
       )
-      .bind(status, updatedAt, pathSegments[1])
+      .bind(status, pathSegments[1])
       .run();
 
     if (!result.meta || result.meta.changes === 0) {
       return jsonResponse(request, env, 404, { error: 'Invite request not found' });
     }
 
-    return jsonResponse(request, env, 200, { id: pathSegments[1], status, updatedAt });
+    return jsonResponse(request, env, 200, { id: pathSegments[1], status });
   }
 
-  return jsonResponse(request, env, 405, { error: 'Method not allowed for invite requests' });
+  return jsonResponse(request, env, 405, { error: 'Method not allowed for auth route' });
+}
+
+async function setupFirstAdmin(request, env) {
+  const existingUsers = await countUsers(env);
+  if (existingUsers > 0) {
+    return jsonResponse(request, env, 409, { error: 'Setup is already complete' });
+  }
+
+  const body = await readJsonBody(request);
+  const email = normalizeEmail(body?.email);
+  const password = typeof body?.password === 'string' ? body.password : '';
+  const setupToken = typeof body?.setupToken === 'string' ? body.setupToken : '';
+  const expectedToken = env.SETUP_TOKEN || env.SECOND_BRAIN_PASSWORD;
+
+  if (!expectedToken || !timingSafeEqual(setupToken, expectedToken)) {
+    return jsonResponse(request, env, 401, { error: 'Invalid setup token' });
+  }
+
+  if (!email) {
+    return jsonResponse(request, env, 400, { error: 'A valid email is required' });
+  }
+
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return jsonResponse(request, env, 400, { error: passwordError });
+  }
+
+  const user = await createUser(env, { email, password, role: 'admin' });
+  const session = await createSession(env, user.id);
+  return jsonResponse(request, env, 201, { user: publicUser(user), token: session.token });
+}
+
+async function loginUser(request, env) {
+  const body = await readJsonBody(request);
+  const email = normalizeEmail(body?.email);
+  const password = typeof body?.password === 'string' ? body.password : '';
+
+  if (!email || !password) {
+    return jsonResponse(request, env, 400, { error: 'Email and password are required' });
+  }
+
+  const user = await env.DB
+    .prepare('SELECT id, email, password_hash, password_salt, role, created_at FROM users WHERE email = ?')
+    .bind(email)
+    .first();
+
+  if (!user || !(await verifyPassword(password, user.password_salt, user.password_hash))) {
+    return jsonResponse(request, env, 401, { error: 'Invalid email or password' });
+  }
+
+  const session = await createSession(env, user.id);
+  return jsonResponse(request, env, 200, { user: publicUser(user), token: session.token });
+}
+
+async function registerUser(request, env) {
+  const body = await readJsonBody(request);
+  const inviteCode = normalizeInviteCode(body?.inviteCode);
+  const password = typeof body?.password === 'string' ? body.password : '';
+
+  if (!inviteCode) {
+    return jsonResponse(request, env, 400, { error: 'Invitation code is required' });
+  }
+
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return jsonResponse(request, env, 400, { error: passwordError });
+  }
+
+  const invite = await env.DB
+    .prepare(
+      `SELECT id, code, email, invite_request_id, used_at
+       FROM invite_codes
+       WHERE UPPER(code) = ?`
+    )
+    .bind(inviteCode)
+    .first();
+
+  if (!invite || invite.used_at) {
+    return jsonResponse(request, env, 400, { error: 'Invalid or already used invitation code' });
+  }
+
+  const email = normalizeEmail(invite.email);
+  if (!email) {
+    return jsonResponse(request, env, 400, { error: 'This invitation code is not linked to an email' });
+  }
+
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  if (existing) {
+    return jsonResponse(request, env, 409, { error: 'An account already exists for this email' });
+  }
+
+  const role = (await countUsers(env)) === 0 ? 'admin' : 'user';
+  const user = await createUser(env, { email, password, role });
+  const now = new Date().toISOString();
+
+  await env.DB
+    .prepare('UPDATE invite_codes SET used_at = ? WHERE id = ?')
+    .bind(now, invite.id)
+    .run();
+
+  if (invite.invite_request_id) {
+    await env.DB
+      .prepare('UPDATE invite_requests SET status = ? WHERE id = ?')
+      .bind('done', invite.invite_request_id)
+      .run();
+  }
+
+  const session = await createSession(env, user.id);
+  return jsonResponse(request, env, 201, { user: publicUser(user), token: session.token });
+}
+
+async function createUser(env, { email, password, role }) {
+  const passwordRecord = await hashPassword(password);
+  const user = {
+    id: crypto.randomUUID(),
+    email,
+    password_hash: passwordRecord.hash,
+    password_salt: passwordRecord.salt,
+    role,
+    created_at: new Date().toISOString(),
+  };
+
+  await env.DB
+    .prepare(
+      `INSERT INTO users (id, email, password_hash, password_salt, role, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(user.id, user.email, user.password_hash, user.password_salt, user.role, user.created_at)
+    .run();
+
+  return user;
+}
+
+async function createSession(env, userId) {
+  const token = randomToken(32);
+  const tokenHash = await hashToken(token);
+  const createdAt = new Date();
+  const expiresAt = new Date(createdAt.getTime() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+
+  await env.DB
+    .prepare(
+      `INSERT INTO sessions (id, user_id, token_hash, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .bind(crypto.randomUUID(), userId, tokenHash, createdAt.toISOString(), expiresAt.toISOString())
+    .run();
+
+  return { token, tokenHash, expiresAt: expiresAt.toISOString() };
+}
+
+async function authenticateRequest(request, env) {
+  const header = request.headers.get('Authorization') || '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const tokenHash = await hashToken(match[1]);
+  const row = await env.DB
+    .prepare(
+      `SELECT
+         sessions.expires_at,
+         users.id,
+         users.email,
+         users.role,
+         users.created_at
+       FROM sessions
+       JOIN users ON users.id = sessions.user_id
+       WHERE sessions.token_hash = ?`
+    )
+    .bind(tokenHash)
+    .first();
+
+  if (!row || new Date(row.expires_at) <= new Date()) {
+    if (row) {
+      await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(tokenHash).run();
+    }
+    return null;
+  }
+
+  return {
+    tokenHash,
+    user: {
+      id: row.id,
+      email: row.email,
+      role: row.role,
+      created_at: row.created_at,
+    },
+  };
 }
 
 async function createInviteCode(request, env) {
@@ -209,10 +430,10 @@ async function createInviteCode(request, env) {
     await env.DB
       .prepare(
         `UPDATE invite_requests
-         SET status = ?, updated_at = ?
+         SET status = ?
          WHERE id = ?`
       )
-      .bind('approved', createdAt, inviteRequestId)
+      .bind('approved', inviteRequestId)
       .run();
   }
 
@@ -252,10 +473,10 @@ async function createInviteRequest(request, env) {
   const id = crypto.randomUUID();
   await env.DB
     .prepare(
-      `INSERT INTO invite_requests (id, email, message, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO invite_requests (id, email, message, status, created_at)
+       VALUES (?, ?, ?, ?, ?)`
     )
-    .bind(id, email, message, 'pending', now, now)
+    .bind(id, email, message, 'pending', now)
     .run();
 
   await notifyInviteRequest(env, { id, email, message, createdAt: now });
@@ -266,8 +487,8 @@ async function createInviteRequest(request, env) {
   });
 }
 
-async function handleCategoryRoutes(request, env, pathSegments, method) {
-  const model = await loadModel(env);
+async function handleCategoryRoutes(request, env, pathSegments, method, user) {
+  const model = await loadModel(env, user.id);
 
   if (method === 'GET') {
     const [categoryId] = pathSegments;
@@ -300,7 +521,7 @@ async function handleCategoryRoutes(request, env, pathSegments, method) {
   if (method === 'POST' && pathSegments.length === 0) {
     const body = await readJsonBody(request);
     const category = model.createCategory(body || {});
-    await saveModel(env, model);
+    await saveModel(env, user.id, model);
     return jsonResponse(request, env, 201, { category });
   }
 
@@ -321,26 +542,26 @@ async function handleCategoryRoutes(request, env, pathSegments, method) {
     if (body?.description !== undefined) {
       updated = model.updateCategoryDescription(categoryId, body.description);
     }
-    await saveModel(env, model);
+    await saveModel(env, user.id, model);
     return jsonResponse(request, env, 200, { category: updated || model.getCategoryById(categoryId) });
   }
 
   if (method === 'DELETE') {
     const result = model.deleteCategory(categoryId);
-    await saveModel(env, model);
+    await saveModel(env, user.id, model);
     return jsonResponse(request, env, 200, result);
   }
 
   return jsonResponse(request, env, 405, { error: 'Method not allowed for category' });
 }
 
-async function handleNoteRoutes(request, env, pathSegments, method) {
-  const model = await loadModel(env);
+async function handleNoteRoutes(request, env, pathSegments, method, user) {
+  const model = await loadModel(env, user.id);
 
   if (method === 'POST' && pathSegments.length === 0) {
     const body = await readJsonBody(request);
     const note = model.createNote(body || {});
-    await saveModel(env, model);
+    await saveModel(env, user.id, model);
     return jsonResponse(request, env, 201, { note });
   }
 
@@ -352,21 +573,21 @@ async function handleNoteRoutes(request, env, pathSegments, method) {
   if (method === 'PATCH') {
     const body = await readJsonBody(request);
     const note = model.updateNote(noteId, body || {});
-    await saveModel(env, model);
+    await saveModel(env, user.id, model);
     return jsonResponse(request, env, 200, { note });
   }
 
   if (method === 'DELETE') {
     const result = model.deleteNote(noteId);
-    await saveModel(env, model);
+    await saveModel(env, user.id, model);
     return jsonResponse(request, env, 200, result);
   }
 
   return jsonResponse(request, env, 405, { error: 'Method not allowed for note' });
 }
 
-async function handleAiCommentRoutes(request, env, pathSegments, method) {
-  const model = await loadModel(env);
+async function handleAiCommentRoutes(request, env, pathSegments, method, user) {
+  const model = await loadModel(env, user.id);
 
   if (method === 'GET') {
     const [scope, id] = pathSegments;
@@ -393,7 +614,7 @@ async function handleAiCommentRoutes(request, env, pathSegments, method) {
     }
     const body = await readJsonBody(request);
     const comment = model.updateAiComment(commentId, body || {});
-    await saveModel(env, model);
+    await saveModel(env, user.id, model);
     return jsonResponse(request, env, 200, { comment });
   }
 
@@ -403,7 +624,7 @@ async function handleAiCommentRoutes(request, env, pathSegments, method) {
       return jsonResponse(request, env, 400, { error: 'AI comment ID is required' });
     }
     const result = model.deleteAiComment(commentId);
-    await saveModel(env, model);
+    await saveModel(env, user.id, model);
     return jsonResponse(request, env, 200, result);
   }
 
@@ -425,6 +646,82 @@ function handleAiSettingsRoute(request, env, method) {
   });
 }
 
+async function loadModel(env, userId) {
+  const row = await env.DB
+    .prepare('SELECT data FROM user_brain_states WHERE user_id = ?')
+    .bind(userId)
+    .first();
+
+  if (!row) {
+    const existingUserStates = await env.DB.prepare('SELECT COUNT(*) AS count FROM user_brain_states').first();
+    if (Number(existingUserStates?.count || 0) === 0) {
+      const legacy = await env.DB.prepare('SELECT data FROM brain_state LIMIT 1').first();
+      if (legacy?.data) {
+        const model = new BrainModel(JSON.parse(legacy.data));
+        await saveModel(env, userId, model);
+        return model;
+      }
+    }
+
+    const model = new BrainModel();
+    await saveModel(env, userId, model);
+    return model;
+  }
+
+  return new BrainModel(JSON.parse(row.data));
+}
+
+async function saveModel(env, userId, model) {
+  await env.DB
+    .prepare(
+      `INSERT INTO user_brain_states (user_id, data, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`
+    )
+    .bind(userId, JSON.stringify(model.serialize()), new Date().toISOString())
+    .run();
+}
+
+async function importData(env, userId, rawJson) {
+  if (!rawJson) {
+    throw new Error('No data provided');
+  }
+
+  const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
+  if (!Array.isArray(parsed.categories) || !Array.isArray(parsed.notes)) {
+    throw new Error('Invalid data format');
+  }
+
+  const model = new BrainModel(parsed);
+  await saveModel(env, userId, model);
+  return model;
+}
+
+async function countUsers(env) {
+  const row = await env.DB.prepare('SELECT COUNT(*) AS count FROM users').first();
+  return Number(row?.count || 0);
+}
+
+function publicUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    createdAt: user.created_at,
+  };
+}
+
+function isAdmin(user) {
+  return user?.role === 'admin';
+}
+
+function validatePassword(password) {
+  if (typeof password !== 'string' || password.length < 8) {
+    return 'Password must contain at least 8 characters';
+  }
+  return '';
+}
+
 function normalizeEmail(value) {
   if (typeof value !== 'string') {
     return '';
@@ -434,6 +731,13 @@ function normalizeEmail(value) {
     return '';
   }
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
+}
+
+function normalizeInviteCode(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim().toUpperCase();
 }
 
 function normalizeInviteMessage(value) {
@@ -461,6 +765,66 @@ function createReadableInviteCode() {
     .toUpperCase();
 }
 
+async function hashPassword(password) {
+  const saltBytes = new Uint8Array(16);
+  crypto.getRandomValues(saltBytes);
+  const salt = base64Url(saltBytes);
+  const hash = await derivePasswordHash(password, salt);
+  return { salt, hash };
+}
+
+async function verifyPassword(password, salt, expectedHash) {
+  const hash = await derivePasswordHash(password, salt);
+  return timingSafeEqual(hash, expectedHash);
+}
+
+async function derivePasswordHash(password, salt) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      hash: 'SHA-256',
+      salt: encoder.encode(salt),
+      iterations: 100000,
+    },
+    key,
+    256
+  );
+  return base64Url(new Uint8Array(bits));
+}
+
+async function hashToken(token) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return base64Url(new Uint8Array(bytes));
+}
+
+function randomToken(length) {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return base64Url(bytes);
+}
+
+function base64Url(bytes) {
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function timingSafeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) {
+    return false;
+  }
+
+  let mismatch = 0;
+  for (let index = 0; index < a.length; index += 1) {
+    mismatch |= a.charCodeAt(index) ^ b.charCodeAt(index);
+  }
+  return mismatch === 0;
+}
+
 async function notifyInviteRequest(env, requestInfo) {
   if (
     !env.EMAIL_API_KEY ||
@@ -482,65 +846,28 @@ async function notifyInviteRequest(env, requestInfo) {
     requestInfo.message || '(no message)',
   ];
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.EMAIL_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to: env.INVITE_REQUEST_TO_EMAIL,
-      subject,
-      text: lines.join('\n'),
-    }),
-  });
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.EMAIL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: env.INVITE_REQUEST_TO_EMAIL,
+        subject,
+        text: lines.join('\n'),
+      }),
+    });
 
-  if (!response.ok) {
-    const text = await response.text();
-    console.warn(`Invite request email failed (${response.status}): ${text}`);
+    if (!response.ok) {
+      const text = await response.text();
+      console.warn(`Invite request email failed (${response.status}): ${text}`);
+    }
+  } catch (error) {
+    console.warn('Invite request email failed:', error);
   }
-}
-
-async function loadModel(env) {
-  const row = await env.DB
-    .prepare('SELECT data FROM brain_state WHERE id = ?')
-    .bind(STATE_ID)
-    .first();
-
-  if (!row) {
-    const model = new BrainModel();
-    await saveModel(env, model);
-    return model;
-  }
-
-  return new BrainModel(JSON.parse(row.data));
-}
-
-async function saveModel(env, model) {
-  await env.DB
-    .prepare(
-      `INSERT INTO brain_state (id, data, updated_at)
-       VALUES (?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`
-    )
-    .bind(STATE_ID, JSON.stringify(model.serialize()), new Date().toISOString())
-    .run();
-}
-
-async function importData(env, rawJson) {
-  if (!rawJson) {
-    throw new Error('No data provided');
-  }
-
-  const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
-  if (!Array.isArray(parsed.categories) || !Array.isArray(parsed.notes)) {
-    throw new Error('Invalid data format');
-  }
-
-  const model = new BrainModel(parsed);
-  await saveModel(env, model);
-  return model;
 }
 
 async function readJsonBody(request) {
@@ -572,7 +899,7 @@ function corsHeaders(request, env) {
   const headers = {
     Vary: 'Origin',
     'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Second-Brain-Password',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 
   if (origin && allowed.has(origin)) {

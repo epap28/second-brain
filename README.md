@@ -38,19 +38,19 @@ The public frontend is hosted by GitHub Pages. The API runs on a Cloudflare Work
 Install Wrangler:
 
 ```powershell
-npm install --save-dev wrangler
+npm.cmd install --save-dev wrangler
 ```
 
 Log in to Cloudflare:
 
 ```powershell
-npx wrangler login
+npx.cmd wrangler login
 ```
 
 Create the free D1 database:
 
 ```powershell
-npx wrangler d1 create second-brain-db
+npx.cmd wrangler d1 create second-brain-db
 ```
 
 Copy the returned `database_id` into `wrangler.toml`, replacing `REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID`.
@@ -58,33 +58,38 @@ Copy the returned `database_id` into `wrangler.toml`, replacing `REPLACE_WITH_CL
 Create the schema:
 
 ```powershell
-npm run d1:schema
+npm.cmd run d1:schema
 ```
 
-Add the API password as a Cloudflare secret:
+Add the first-admin setup token as a Cloudflare secret:
 
 ```powershell
-npx wrangler secret put SECOND_BRAIN_PASSWORD
+npx.cmd wrangler secret put SETUP_TOKEN
 ```
+
+If `SETUP_TOKEN` is not configured, the Worker can still use the old `SECOND_BRAIN_PASSWORD` secret as the setup token.
 
 To receive invite request emails, edit `wrangler.toml`:
 
 ```toml
 INVITE_REQUEST_TO_EMAIL = "your-email@example.com"
+INVITE_REQUEST_FROM_EMAIL = "Second Brain <onboarding@resend.dev>"
 ```
 
-Then add a Resend API key as a Cloudflare secret:
+Then add the Resend API key as a Cloudflare secret:
 
 ```powershell
-npx wrangler secret put EMAIL_API_KEY
+npx.cmd wrangler secret put EMAIL_API_KEY
 ```
+
+Cloudflare will prompt for the value. Paste the Resend API key, then press Enter.
 
 If `EMAIL_API_KEY` is not configured, invite requests are still stored in D1 and visible in the admin panel.
 
 Deploy the Worker:
 
 ```powershell
-npm run worker:deploy
+npm.cmd run worker:deploy
 ```
 
 Cloudflare will print a URL like:
@@ -94,6 +99,44 @@ https://second-brain-api.<your-subdomain>.workers.dev
 ```
 
 Copy that URL into `docs/config.js`, then commit and push.
+
+## Authentication flow
+
+Create the first admin account once the Worker is deployed:
+
+```powershell
+$body = @{
+  email = "your-email@example.com"
+  password = "your-admin-password"
+  setupToken = "your-setup-token"
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "https://second-brain-api.<your-subdomain>.workers.dev/api/auth/setup" `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+Then sign in from the GitHub Pages app with that email and password.
+
+To create invitation codes:
+
+1. Sign in as the admin user.
+2. Open the `Invite requests` panel on the home screen.
+3. Click `Create code` on a pending request.
+4. Send the copied code to the requester.
+
+Users create their account from the `Premiere connexion` section with the invitation code and a new password.
+
+## Git deploy
+
+```powershell
+git add .
+git commit -m "Add user authentication"
+git push origin main
+```
+
 
 ## Data privacy
 

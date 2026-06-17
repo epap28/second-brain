@@ -1,7 +1,6 @@
 const configuredApiBaseUrl = window.SECOND_BRAIN_API_BASE_URL || '';
-const isLocalOrigin = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
-const API_BASE_URL = (isLocalOrigin ? '' : configuredApiBaseUrl).replace(/\/$/, '');
-const PASSWORD_STORAGE_KEY = 'second-brain-api-password';
+const API_BASE_URL = configuredApiBaseUrl.replace(/\/$/, '');
+const SESSION_STORAGE_KEY = 'second-brain-session-token';
 
 const state = {
   currentCategoryId: null,
@@ -13,13 +12,13 @@ const state = {
   isRequestingAi: false,
   aiSettings: null,
   rootCategoryId: null,
-  apiPassword: readStoredApiPassword(),
-  passwordRequestResolver: null,
+  sessionToken: readStoredSessionToken(),
+  currentUser: null,
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
-  await initializeApp();
+  await initializeSession();
 });
 
 async function initializeApp() {
@@ -34,7 +33,10 @@ async function initializeApp() {
   state.currentCategoryId = rootCategory.id;
   document.body.dataset.view = 'home';
   await loadCategory(rootCategory.id);
-  await refreshInviteRequests();
+  updateAdminUi();
+  if (isAdminUser()) {
+    await refreshInviteRequests();
+  }
 }
 
 function setupEventListeners() {
@@ -52,27 +54,89 @@ function setupEventListeners() {
   document.getElementById('note-editor').addEventListener('input', handleEditorInput);
   document.getElementById('insert-divider-btn').addEventListener('click', insertDivider);
   document.getElementById('ai-request-btn').addEventListener('click', requestAiComment);
-  document.getElementById('access-form').addEventListener('submit', handleAccessSubmit);
+  document.getElementById('login-form').addEventListener('submit', handleLoginSubmit);
+  document.getElementById('first-login-form').addEventListener('submit', handleFirstLoginSubmit);
   document.getElementById('invite-request-form').addEventListener('submit', handleInviteRequestSubmit);
   document.getElementById('show-invite-request-btn').addEventListener('click', showInviteRequestForm);
   document.getElementById('back-to-access-btn').addEventListener('click', showAccessForm);
   document.getElementById('refresh-invite-requests-btn').addEventListener('click', refreshInviteRequests);
+  document.getElementById('disconnect-btn').addEventListener('click', handleDisconnect);
 }
 
-function handleAccessSubmit(event) {
-  event.preventDefault();
-  const input = document.getElementById('access-password');
-  const password = input.value.trim();
-  if (!password) {
-    setAccessStatus('Password is required.');
+async function initializeSession() {
+  if (!state.sessionToken) {
+    showAccessGate();
     return;
   }
 
-  storeApiPassword(password);
-  hideAccessGate();
-  if (state.passwordRequestResolver) {
-    state.passwordRequestResolver(password);
-    state.passwordRequestResolver = null;
+  try {
+    const response = await apiFetch('/api/auth/me');
+    if (!response.ok) {
+      clearSession();
+      showAccessGate();
+      return;
+    }
+    const { user } = await response.json();
+    state.currentUser = user;
+    hideAccessGate();
+    await initializeApp();
+  } catch (error) {
+    clearSession();
+    showAccessGate();
+  }
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  setLoginStatus('Connexion...');
+  try {
+    const response = await publicApiFetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.error || 'Connexion impossible');
+    }
+    applySession(body);
+    hideAccessGate();
+    await initializeApp();
+  } catch (error) {
+    setLoginStatus(error.message || 'Connexion impossible.');
+  }
+}
+
+async function handleFirstLoginSubmit(event) {
+  event.preventDefault();
+  const inviteCode = document.getElementById('first-login-code').value.trim();
+  const password = document.getElementById('first-login-password').value;
+  const confirmation = document.getElementById('first-login-confirm').value;
+
+  if (password !== confirmation) {
+    setFirstLoginStatus('Les deux mots de passe ne sont pas identiques.');
+    return;
+  }
+
+  setFirstLoginStatus('Creation du compte...');
+  try {
+    const response = await publicApiFetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inviteCode, password }),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.error || 'Creation impossible');
+    }
+    applySession(body);
+    hideAccessGate();
+    await initializeApp();
+  } catch (error) {
+    setFirstLoginStatus(error.message || 'Creation impossible.');
   }
 }
 
@@ -84,7 +148,7 @@ async function handleInviteRequestSubmit(event) {
   const email = emailInput.value.trim();
   const message = messageInput.value.trim();
 
-  status.textContent = 'Sending request...';
+  status.textContent = 'Envoi de la demande...';
 
   try {
     const response = await publicApiFetch('/api/auth/invite-request', {
@@ -100,10 +164,10 @@ async function handleInviteRequestSubmit(event) {
     emailInput.value = '';
     messageInput.value = '';
     status.textContent = body.message === 'Invite request already pending'
-      ? 'A request is already pending for this email.'
-      : 'Request sent. You will be contacted if access is approved.';
+      ? 'Une demande est deja en attente pour cet email.'
+      : 'Demande envoyee. Tu seras contacte si l acces est approuve.';
   } catch (error) {
-    status.textContent = error.message || 'Unable to submit invite request.';
+    status.textContent = error.message || 'Impossible d envoyer la demande.';
   }
 }
 
@@ -111,16 +175,18 @@ function showAccessGate() {
   const gate = document.getElementById('access-gate');
   gate.hidden = false;
   showAccessForm();
-  document.getElementById('access-password').focus();
+  document.getElementById('login-email').focus();
 }
 
 function hideAccessGate() {
   document.getElementById('access-gate').hidden = true;
-  setAccessStatus('');
+  setLoginStatus('');
+  setFirstLoginStatus('');
 }
 
 function showInviteRequestForm() {
-  document.getElementById('access-form').classList.add('hidden');
+  document.getElementById('login-form').classList.add('hidden');
+  document.getElementById('first-login-form').classList.add('hidden');
   document.getElementById('invite-request-form').classList.remove('hidden');
   document.getElementById('invite-request-status').textContent = '';
   document.getElementById('invite-request-email').focus();
@@ -128,19 +194,60 @@ function showInviteRequestForm() {
 
 function showAccessForm() {
   document.getElementById('invite-request-form').classList.add('hidden');
-  document.getElementById('access-form').classList.remove('hidden');
+  document.getElementById('login-form').classList.remove('hidden');
+  document.getElementById('first-login-form').classList.remove('hidden');
 }
 
-function setAccessStatus(text) {
-  document.getElementById('access-status').textContent = text;
+function setLoginStatus(text) {
+  document.getElementById('login-status').textContent = text;
 }
 
-function requestApiPassword() {
-  showAccessGate();
-  setAccessStatus('Enter the private access password.');
-  return new Promise((resolve) => {
-    state.passwordRequestResolver = resolve;
-  });
+function setFirstLoginStatus(text) {
+  document.getElementById('first-login-status').textContent = text;
+}
+
+function applySession({ token, user }) {
+  state.sessionToken = token;
+  state.currentUser = user;
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, token);
+  } catch (error) {
+    // The in-memory session still works in this tab.
+  }
+}
+
+function clearSession() {
+  state.sessionToken = '';
+  state.currentUser = null;
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+async function handleDisconnect() {
+  try {
+    if (state.sessionToken) {
+      await apiFetch('/api/auth/logout', { method: 'POST' });
+    }
+  } catch (error) {
+    console.warn('Logout failed', error);
+  } finally {
+    clearSession();
+    window.location.reload();
+  }
+}
+
+function updateAdminUi() {
+  const panel = document.getElementById('invite-requests-panel');
+  if (panel) {
+    panel.classList.toggle('hidden', !isAdminUser());
+  }
+}
+
+function isAdminUser() {
+  return state.currentUser?.role === 'admin';
 }
 
 async function loadCategory(categoryId, options = {}) {
@@ -692,17 +799,17 @@ async function refreshLatestAiComments() {
 
 async function refreshInviteRequests() {
   const container = document.getElementById('invite-requests-list');
-  container.textContent = 'Loading...';
+  container.textContent = 'Chargement...';
 
   try {
     const response = await apiFetch('/api/auth/invite-requests');
     const body = await response.json();
     if (!response.ok) {
-      throw new Error(body.error || 'Failed to load invite requests');
+      throw new Error(body.error || 'Impossible de charger les demandes');
     }
     renderInviteRequests(body.requests || []);
   } catch (error) {
-    container.textContent = error.message || 'Failed to load invite requests';
+    container.textContent = error.message || 'Impossible de charger les demandes';
   }
 }
 
@@ -711,7 +818,7 @@ function renderInviteRequests(requests) {
   container.innerHTML = '';
 
   if (!requests.length) {
-    container.textContent = 'No requests yet.';
+    container.textContent = 'Aucune demande pour le moment.';
     return;
   }
 
@@ -749,17 +856,17 @@ function renderInviteRequests(requests) {
 
       const createCode = document.createElement('button');
       createCode.type = 'button';
-      createCode.textContent = 'Create code';
+      createCode.textContent = 'Creer un code';
       createCode.addEventListener('click', () => createInviteCodeForRequest(request));
 
       const approve = document.createElement('button');
       approve.type = 'button';
-      approve.textContent = 'Approve';
+      approve.textContent = 'Approuver';
       approve.addEventListener('click', () => updateInviteRequestStatus(request.id, 'approved'));
 
       const reject = document.createElement('button');
       reject.type = 'button';
-      reject.textContent = 'Reject';
+      reject.textContent = 'Refuser';
       reject.addEventListener('click', () => updateInviteRequestStatus(request.id, 'rejected'));
 
       actions.append(createCode, approve, reject);
@@ -779,7 +886,7 @@ async function updateInviteRequestStatus(requestId, status) {
 
   if (!response.ok) {
     const body = await response.json();
-    alert(body.error || 'Failed to update invite request');
+    alert(body.error || 'Impossible de mettre a jour la demande');
     return;
   }
 
@@ -798,16 +905,16 @@ async function createInviteCodeForRequest(request) {
   const body = await response.json();
 
   if (!response.ok) {
-    alert(body.error || 'Failed to create invite code');
+    alert(body.error || 'Impossible de creer le code');
     return;
   }
 
   const code = body.invite.code;
   try {
     await navigator.clipboard.writeText(code);
-    alert(`Invite code copied: ${code}`);
+    alert(`Code d invitation copie : ${code}`);
   } catch (error) {
-    alert(`Invite code created: ${code}`);
+    alert(`Code d invitation cree : ${code}`);
   }
 
   await refreshInviteRequests();
@@ -1007,27 +1114,18 @@ function formatAiCommentLabel(comment) {
   return `${model} (review)`;
 }
 
-function readStoredApiPassword() {
+function readStoredSessionToken() {
   try {
-    return localStorage.getItem(PASSWORD_STORAGE_KEY) || '';
+    return localStorage.getItem(SESSION_STORAGE_KEY) || '';
   } catch (error) {
     return '';
   }
 }
 
-function storeApiPassword(password) {
-  state.apiPassword = password;
-  try {
-    localStorage.setItem(PASSWORD_STORAGE_KEY, password);
-  } catch (error) {
-    // Ignore storage errors; the in-memory password still works for this tab.
-  }
-}
-
 async function apiFetch(path, options = {}, retrying = false) {
   const headers = new Headers(options.headers || {});
-  if (state.apiPassword) {
-    headers.set('X-Second-Brain-Password', state.apiPassword);
+  if (state.sessionToken) {
+    headers.set('Authorization', `Bearer ${state.sessionToken}`);
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -1039,15 +1137,12 @@ async function apiFetch(path, options = {}, retrying = false) {
     return response;
   }
 
-  if (retrying) {
-    storeApiPassword('');
+  if (!retrying) {
+    clearSession();
     showAccessGate();
-    setAccessStatus('Wrong password. Try again.');
-    return response;
+    setLoginStatus('Session expiree. Connecte-toi a nouveau.');
   }
-
-  await requestApiPassword();
-  return apiFetch(path, options, true);
+  return response;
 }
 
 async function publicApiFetch(path, options = {}) {
