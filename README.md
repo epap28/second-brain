@@ -31,18 +31,55 @@ https://epap28.github.io/second-brain/
 
 `docs/config.js` points the frontend to the hosted API.
 
-## Render backend
+## Free Cloudflare backend
 
-Create a Render Web Service from this repository, or use `render.yaml`.
+The public frontend is hosted by GitHub Pages. The API runs on a Cloudflare Worker, and the app data is stored in Cloudflare D1.
 
-Required environment variables:
+Install Wrangler:
 
-- `DATA_FILE=/var/data/second-brain.json`
-- `SECOND_BRAIN_PASSWORD=<your-password>`
-- `ALLOWED_ORIGINS=https://epap28.github.io,http://localhost:3000`
-- `AI_ENABLED=false`
+```powershell
+npm install --save-dev wrangler
+```
 
-Mount a persistent disk at `/var/data` so the brain data survives deploys and restarts.
+Log in to Cloudflare:
+
+```powershell
+npx wrangler login
+```
+
+Create the free D1 database:
+
+```powershell
+npx wrangler d1 create second-brain-db
+```
+
+Copy the returned `database_id` into `wrangler.toml`, replacing `REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID`.
+
+Create the schema:
+
+```powershell
+npm run d1:schema
+```
+
+Add the API password as a Cloudflare secret:
+
+```powershell
+npx wrangler secret put SECOND_BRAIN_PASSWORD
+```
+
+Deploy the Worker:
+
+```powershell
+npm run worker:deploy
+```
+
+Cloudflare will print a URL like:
+
+```text
+https://second-brain-api.<your-subdomain>.workers.dev
+```
+
+Copy that URL into `docs/config.js`, then commit and push.
 
 ## Data privacy
 

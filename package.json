@@ -6,10 +6,16 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node src/index.js",
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy",
+    "d1:schema": "wrangler d1 execute second-brain-db --file=worker/schema.sql --remote",
     "test": "echo \"No automated tests yet\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "wrangler": "^4.101.0"
+  }
 }
