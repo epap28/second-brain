@@ -186,7 +186,7 @@ async function handleAuthRoutes(request, env, pathSegments, method, auth) {
   if (method === 'GET' && pathSegments.length === 1) {
     const rows = await env.DB
       .prepare(
-        `SELECT id, email, message, status, created_at
+        `SELECT id, email, message, status, created_at, updated_at
          FROM invite_requests
          ORDER BY created_at DESC
          LIMIT 50`
@@ -202,20 +202,21 @@ async function handleAuthRoutes(request, env, pathSegments, method, auth) {
       return jsonResponse(request, env, 400, { error: 'Invalid invite request status' });
     }
 
+    const updatedAt = new Date().toISOString();
     const result = await env.DB
       .prepare(
         `UPDATE invite_requests
-         SET status = ?
+         SET status = ?, updated_at = ?
          WHERE id = ?`
       )
-      .bind(status, pathSegments[1])
+      .bind(status, updatedAt, pathSegments[1])
       .run();
 
     if (!result.meta || result.meta.changes === 0) {
       return jsonResponse(request, env, 404, { error: 'Invite request not found' });
     }
 
-    return jsonResponse(request, env, 200, { id: pathSegments[1], status });
+    return jsonResponse(request, env, 200, { id: pathSegments[1], status, updatedAt });
   }
 
   return jsonResponse(request, env, 405, { error: 'Method not allowed for auth route' });
@@ -321,8 +322,8 @@ async function registerUser(request, env) {
 
   if (invite.invite_request_id) {
     await env.DB
-      .prepare('UPDATE invite_requests SET status = ? WHERE id = ?')
-      .bind('done', invite.invite_request_id)
+      .prepare('UPDATE invite_requests SET status = ?, updated_at = ? WHERE id = ?')
+      .bind('done', now, invite.invite_request_id)
       .run();
   }
 
@@ -430,10 +431,10 @@ async function createInviteCode(request, env) {
     await env.DB
       .prepare(
         `UPDATE invite_requests
-         SET status = ?
+         SET status = ?, updated_at = ?
          WHERE id = ?`
       )
-      .bind('approved', inviteRequestId)
+      .bind('approved', createdAt, inviteRequestId)
       .run();
   }
 
@@ -473,10 +474,10 @@ async function createInviteRequest(request, env) {
   const id = crypto.randomUUID();
   await env.DB
     .prepare(
-      `INSERT INTO invite_requests (id, email, message, status, created_at)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO invite_requests (id, email, message, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
     )
-    .bind(id, email, message, 'pending', now)
+    .bind(id, email, message, 'pending', now, now)
     .run();
 
   return jsonResponse(request, env, 201, {

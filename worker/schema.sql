@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS invite_requests (
   email TEXT NOT NULL,
   message TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL DEFAULT 'pending',
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_invite_requests_status_created
