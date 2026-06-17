@@ -1,3 +1,8 @@
+const configuredApiBaseUrl = window.SECOND_BRAIN_API_BASE_URL || '';
+const isLocalOrigin = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
+const API_BASE_URL = (isLocalOrigin ? '' : configuredApiBaseUrl).replace(/\/$/, '');
+const PASSWORD_STORAGE_KEY = 'second-brain-api-password';
+
 const state = {
   currentCategoryId: null,
   currentNote: null,
@@ -8,6 +13,7 @@ const state = {
   isRequestingAi: false,
   aiSettings: null,
   rootCategoryId: null,
+  apiPassword: readStoredApiPassword(),
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -17,7 +23,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function initializeApp() {
   await loadAiSettings();
-  const response = await fetch('/api/root');
+  const response = await apiFetch('/api/root');
+  if (!response.ok) {
+    alert('Unable to load Second Brain data.');
+    return;
+  }
   const { rootCategory } = await response.json();
   state.rootCategoryId = rootCategory.id;
   state.currentCategoryId = rootCategory.id;
@@ -43,7 +53,7 @@ function setupEventListeners() {
 }
 
 async function loadCategory(categoryId, options = {}) {
-  const response = await fetch(`/api/category/${categoryId}`);
+  const response = await apiFetch(`/api/category/${categoryId}`);
   if (!response.ok) {
     alert('Failed to load category');
     return;
@@ -81,7 +91,7 @@ async function loadCategory(categoryId, options = {}) {
 
 async function loadAiSettings() {
   try {
-    const response = await fetch('/api/ai-settings');
+    const response = await apiFetch('/api/ai-settings');
     if (!response.ok) {
       throw new Error('Failed to load AI settings');
     }
@@ -93,7 +103,7 @@ async function loadAiSettings() {
 }
 
 async function renderBreadcrumb(categoryId) {
-  const response = await fetch(`/api/breadcrumb/${categoryId}`);
+  const response = await apiFetch(`/api/breadcrumb/${categoryId}`);
   const { breadcrumb } = await response.json();
   const container = document.getElementById('breadcrumb');
   container.innerHTML = '';
@@ -170,7 +180,7 @@ async function handleDeleteSubcategory(categoryId, categoryName = '') {
   }
 
   try {
-    await fetch(`/api/category/${categoryId}`, { method: 'DELETE' });
+    await apiFetch(`/api/category/${categoryId}`, { method: 'DELETE' });
     await loadCategory(state.currentCategoryId);
   } catch (error) {
     alert('Failed to delete subcategory');
@@ -260,7 +270,7 @@ async function handleSearchSubmit(event) {
     return;
   }
 
-  const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&mode=${mode}`);
+  const response = await apiFetch(`/api/search?q=${encodeURIComponent(query)}&mode=${mode}`);
   const { results } = await response.json();
 
   if (!results || results.length === 0) {
@@ -316,7 +326,7 @@ async function ensureNoteExists(notes = []) {
     return sorted;
   }
 
-  const response = await fetch('/api/note', {
+  const response = await apiFetch('/api/note', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -351,7 +361,7 @@ async function saveCurrentNote() {
     return;
   }
 
-  await fetch(`/api/note/${state.currentNote.id}`, {
+  await apiFetch(`/api/note/${state.currentNote.id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content: state.currentNote.content, title: state.currentNote.title || '' }),
@@ -426,7 +436,7 @@ async function openCategoryModal(mode) {
     textarea.value = '';
   } else if (mode === 'edit') {
     titleEl.textContent = 'Edit category';
-    const response = await fetch(`/api/category/${state.currentCategoryId}`);
+    const response = await apiFetch(`/api/category/${state.currentCategoryId}`);
     const { category } = await response.json();
     input.value = category.name;
     textarea.value = category.description || '';
@@ -458,7 +468,7 @@ async function handleModalSubmit(event) {
   try {
     if (mode === 'ai-edit') {
       const commentId = modal.dataset.commentId;
-      const response = await fetch(`/api/ai-comments/${commentId}`, {
+      const response = await apiFetch(`/api/ai-comments/${commentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: input.value || 'mistral:7b', content: textarea.value }),
@@ -478,7 +488,7 @@ async function handleModalSubmit(event) {
     }
 
     if (mode === 'create') {
-      await fetch('/api/category', {
+      await apiFetch('/api/category', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -488,7 +498,7 @@ async function handleModalSubmit(event) {
         }),
       });
     } else if (mode === 'edit') {
-      await fetch(`/api/category/${state.currentCategoryId}`, {
+      await apiFetch(`/api/category/${state.currentCategoryId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: input.value, description: textarea.value }),
@@ -512,8 +522,8 @@ async function handleDeleteCategory() {
   }
 
   try {
-    await fetch(`/api/category/${state.currentCategoryId}`, { method: 'DELETE' });
-    const response = await fetch('/api/root');
+    await apiFetch(`/api/category/${state.currentCategoryId}`, { method: 'DELETE' });
+    const response = await apiFetch('/api/root');
     const { rootCategory } = await response.json();
     await loadCategory(rootCategory.id);
   } catch (error) {
@@ -522,7 +532,7 @@ async function handleDeleteCategory() {
 }
 
 async function handleExport() {
-  const response = await fetch('/api/export');
+  const response = await apiFetch('/api/export');
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -539,7 +549,7 @@ async function handleImport(event) {
   }
 
   const text = await file.text();
-  await fetch('/api/import', {
+  await apiFetch('/api/import', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data: text }),
@@ -561,7 +571,7 @@ async function refreshAiComments() {
     return;
   }
 
-  const response = await fetch(`/api/ai-comments/note/${state.currentNote.id}`);
+  const response = await apiFetch(`/api/ai-comments/note/${state.currentNote.id}`);
   if (!response.ok) {
     console.warn('Failed to load AI comments');
     return;
@@ -573,7 +583,7 @@ async function refreshAiComments() {
 }
 
 async function refreshLatestAiComments() {
-  const response = await fetch('/api/ai-comments/latest/5');
+  const response = await apiFetch('/api/ai-comments/latest/5');
   if (!response.ok) {
     console.warn('Failed to load AI notifications');
     return;
@@ -593,6 +603,7 @@ function renderAiComments(options = {}) {
   const container = document.getElementById('ai-comments');
   const requestBtn = document.getElementById('ai-request-btn');
   const actions = document.getElementById('ai-comment-actions');
+  const aiEnabled = state.aiSettings?.enabled !== false;
 
   container.innerHTML = '';
 
@@ -601,12 +612,16 @@ function renderAiComments(options = {}) {
     return;
   }
 
-  actions.classList.toggle('hidden', Boolean(options.hideActions));
+  actions.classList.toggle('hidden', Boolean(options.hideActions) || !aiEnabled);
   requestBtn.disabled = state.isRequestingAi;
   requestBtn.textContent = state.isRequestingAi ? 'Requesting…' : 'Request AI feedback';
 
   if (!state.aiComments.length) {
-    actions.classList.remove('hidden');
+    if (aiEnabled && !options.hideActions) {
+      actions.classList.remove('hidden');
+    } else if (!aiEnabled) {
+      container.textContent = 'AI feedback is disabled for this deployment.';
+    }
     return;
   }
 
@@ -696,7 +711,7 @@ function renderLatestAiComments() {
 async function dismissNotification(commentId) {
   try {
     state.dismissedNotifications.add(commentId);
-    await fetch(`/api/ai-comments/${commentId}`, {
+    await apiFetch(`/api/ai-comments/${commentId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dismissed: true }),
@@ -711,12 +726,16 @@ async function requestAiComment() {
   if (!state.currentNote || state.isRequestingAi) {
     return;
   }
+  if (state.aiSettings?.enabled === false) {
+    alert('AI feedback is disabled for this deployment.');
+    return;
+  }
 
   state.isRequestingAi = true;
   renderAiComments();
 
   try {
-    const response = await fetch('/api/ai-comments/generate', {
+    const response = await apiFetch('/api/ai-comments/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ noteId: state.currentNote.id }),
@@ -760,7 +779,7 @@ async function handleDeleteAiComment(commentId) {
     return;
   }
 
-  await fetch(`/api/ai-comments/${commentId}`, { method: 'DELETE' });
+  await apiFetch(`/api/ai-comments/${commentId}`, { method: 'DELETE' });
   state.aiComments = state.aiComments.filter((comment) => comment.id !== commentId);
   renderAiComments();
   await refreshLatestAiComments();
@@ -772,4 +791,45 @@ function formatAiCommentLabel(comment) {
     return model;
   }
   return `${model} (review)`;
+}
+
+function readStoredApiPassword() {
+  try {
+    return localStorage.getItem(PASSWORD_STORAGE_KEY) || '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function storeApiPassword(password) {
+  state.apiPassword = password;
+  try {
+    localStorage.setItem(PASSWORD_STORAGE_KEY, password);
+  } catch (error) {
+    // Ignore storage errors; the in-memory password still works for this tab.
+  }
+}
+
+async function apiFetch(path, options = {}, retrying = false) {
+  const headers = new Headers(options.headers || {});
+  if (state.apiPassword) {
+    headers.set('X-Second-Brain-Password', state.apiPassword);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  if (response.status !== 401 || retrying) {
+    return response;
+  }
+
+  const password = prompt('Mot de passe Second Brain');
+  if (password === null) {
+    return response;
+  }
+
+  storeApiPassword(password.trim());
+  return apiFetch(path, options, true);
 }

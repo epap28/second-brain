@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { DataModel } = require('./dataModel');
 
-const DATA_FILE = path.join(__dirname, '..', 'data', 'second-brain.json');
+const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, '..', 'data', 'second-brain.json');
 
 function ensureDataFileExists() {
   const dir = path.dirname(DATA_FILE);

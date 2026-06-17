@@ -6,14 +6,36 @@ const { generateNoteFeedback } = require('./ai/ollamaClient');
 const { createSearchService } = require('./search/searchService');
 
 const PORT = process.env.PORT || 3000;
-const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const PUBLIC_DIR = path.join(__dirname, '..', 'docs');
+const API_PASSWORD = process.env.SECOND_BRAIN_PASSWORD || '';
+const AI_ENABLED = process.env.AI_ENABLED !== 'false';
+const DEFAULT_ALLOWED_ORIGINS = ['https://epap28.github.io', 'http://localhost:3000'];
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : DEFAULT_ALLOWED_ORIGINS
+  )
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const segments = url.pathname.split('/').filter(Boolean);
+  const method = req.method.toUpperCase();
+
+  applyCorsHeaders(req, res);
+
+  if (method === 'OPTIONS') {
+    res.writeHead(204);
+    return res.end();
+  }
 
   try {
     if (segments[0] === 'api') {
+      if (!isAuthorized(req)) {
+        return sendJson(res, 401, { error: 'Unauthorized' });
+      }
       await handleApiRequest(req, res, url, segments);
     } else {
       await serveStaticFile(res, url.pathname);
@@ -27,6 +49,23 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Second Brain server running at http://localhost:${PORT}`);
 });
+
+function applyCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Second-Brain-Password');
+}
+
+function isAuthorized(req) {
+  if (!API_PASSWORD) {
+    return true;
+  }
+  return req.headers['x-second-brain-password'] === API_PASSWORD;
+}
 
 async function handleApiRequest(req, res, url, segments) {
   const method = req.method.toUpperCase();
@@ -207,6 +246,10 @@ async function handleAiCommentRoutes(req, res, pathSegments, method) {
   }
 
   if (method === 'POST' && pathSegments[0] === 'generate') {
+    if (!AI_ENABLED) {
+      return sendJson(res, 503, { error: 'AI feedback is disabled for this deployment' });
+    }
+
     const body = await readJsonBody(req);
     const { noteId } = body || {};
     if (!noteId) {
@@ -265,6 +308,7 @@ function handleAiSettingsRoute(res, method) {
   }
 
   const status = {
+    enabled: AI_ENABLED,
     model: process.env.OLLAMA_MODEL || 'mistral:7b',
     endpoint: process.env.OLLAMA_URL || 'http://localhost:11434',
     streaming: false,
