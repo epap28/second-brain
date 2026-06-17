@@ -6,10 +6,15 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node src/index.js",
-    "test": "echo \"No automated tests yet\""
+    "test": "echo \"No automated tests yet\"",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "wrangler": "^4.101.0"
+  }
 }
