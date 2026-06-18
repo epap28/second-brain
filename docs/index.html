@@ -15,40 +15,40 @@
         </div>
 
         <form id="login-form" class="access-form">
-          <h2>Connexion</h2>
+          <h2>Sign In</h2>
           <div class="form-group">
             <label for="login-email">Email</label>
             <input type="email" id="login-email" autocomplete="email" required />
           </div>
           <div class="form-group">
-            <label for="login-password">Mot de passe</label>
+            <label for="login-password">Password</label>
             <input type="password" id="login-password" autocomplete="current-password" required />
           </div>
-          <button type="submit">Se connecter</button>
-          <button type="button" class="link-button" id="show-invite-request-btn">Demander un code d'invitation</button>
+          <button type="submit">Sign in</button>
+          <button type="button" class="link-button" id="show-invite-request-btn">Request an invitation code</button>
           <p id="login-status" class="form-status"></p>
         </form>
 
         <form id="first-login-form" class="access-form">
-          <h2>Premiere connexion</h2>
+          <h2>First-Time Access</h2>
           <div class="form-group">
-            <label for="first-login-code">Code d'invitation</label>
+            <label for="first-login-code">Invitation code</label>
             <input type="text" id="first-login-code" autocomplete="one-time-code" required />
           </div>
           <div class="form-group">
-            <label for="first-login-password">Mot de passe</label>
+            <label for="first-login-password">Password</label>
             <input type="password" id="first-login-password" autocomplete="new-password" required minlength="8" />
           </div>
           <div class="form-group">
-            <label for="first-login-confirm">Confirmation du mot de passe</label>
+            <label for="first-login-confirm">Confirm password</label>
             <input type="password" id="first-login-confirm" autocomplete="new-password" required minlength="8" />
           </div>
-          <button type="submit">Creer mon espace</button>
+          <button type="submit">Create my workspace</button>
           <p id="first-login-status" class="form-status"></p>
         </form>
 
         <form id="invite-request-form" class="access-form hidden">
-          <h2>Demander un code</h2>
+          <h2>Request a Code</h2>
           <div class="form-group">
             <label for="invite-request-email">Email</label>
             <input type="email" id="invite-request-email" autocomplete="email" required />
@@ -57,8 +57,8 @@
             <label for="invite-request-message">Message</label>
             <textarea id="invite-request-message" rows="4" maxlength="1000"></textarea>
           </div>
-          <button type="submit">Envoyer la demande</button>
-          <button type="button" class="link-button" id="back-to-access-btn">Retour</button>
+          <button type="submit">Send request</button>
+          <button type="button" class="link-button" id="back-to-access-btn">Back</button>
           <p id="invite-request-status" class="form-status"></p>
         </form>
       </section>
@@ -101,8 +101,8 @@
         </div>
 
         <div class="invite-requests card admin-only hidden" id="invite-requests-panel">
-          <h2>Demandes d'invitation</h2>
-          <button id="refresh-invite-requests-btn" type="button">Actualiser</button>
+          <h2>Invitation Requests</h2>
+          <button id="refresh-invite-requests-btn" type="button">Refresh</button>
           <div id="invite-requests-list" class="invite-requests-list"></div>
         </div>
       </aside>

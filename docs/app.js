@@ -93,7 +93,7 @@ async function handleLoginSubmit(event) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
 
-  setLoginStatus('Connexion...');
+  setLoginStatus('Signing in...');
   try {
     const response = await publicApiFetch('/api/auth/login', {
       method: 'POST',
@@ -102,13 +102,13 @@ async function handleLoginSubmit(event) {
     });
     const body = await response.json();
     if (!response.ok) {
-      throw new Error(body.error || 'Connexion impossible');
+      throw new Error(body.error || 'Unable to sign in');
     }
     applySession(body);
     hideAccessGate();
     await initializeApp();
   } catch (error) {
-    setLoginStatus(error.message || 'Connexion impossible.');
+    setLoginStatus(error.message || 'Unable to sign in.');
   }
 }
 
@@ -119,11 +119,11 @@ async function handleFirstLoginSubmit(event) {
   const confirmation = document.getElementById('first-login-confirm').value;
 
   if (password !== confirmation) {
-    setFirstLoginStatus('Les deux mots de passe ne sont pas identiques.');
+    setFirstLoginStatus('The two passwords do not match.');
     return;
   }
 
-  setFirstLoginStatus('Creation du compte...');
+  setFirstLoginStatus('Creating your account...');
   try {
     const response = await publicApiFetch('/api/auth/register', {
       method: 'POST',
@@ -132,13 +132,13 @@ async function handleFirstLoginSubmit(event) {
     });
     const body = await response.json();
     if (!response.ok) {
-      throw new Error(body.error || 'Creation impossible');
+      throw new Error(body.error || 'Unable to create account');
     }
     applySession(body);
     hideAccessGate();
     await initializeApp();
   } catch (error) {
-    setFirstLoginStatus(error.message || 'Creation impossible.');
+    setFirstLoginStatus(error.message || 'Unable to create account.');
   }
 }
 
@@ -150,7 +150,7 @@ async function handleInviteRequestSubmit(event) {
   const email = emailInput.value.trim();
   const message = messageInput.value.trim();
 
-  status.textContent = 'Envoi de la demande...';
+  status.textContent = 'Sending request...';
 
   try {
     const response = await publicApiFetch('/api/auth/invite-request', {
@@ -166,17 +166,17 @@ async function handleInviteRequestSubmit(event) {
     emailInput.value = '';
     messageInput.value = '';
     if (body.message === 'Invite request already pending') {
-      status.textContent = 'Une demande est deja en attente pour cet email.';
+      status.textContent = 'A request is already pending for this email.';
       return;
     }
 
     renderMailtoStatus(
       status,
-      'Demande enregistree. Choisis comment prevenir l admin :',
+      'Request saved. Choose how to notify the admin:',
       buildAdminInviteRequestEmail(email, message),
     );
   } catch (error) {
-    status.textContent = error.message || 'Impossible d envoyer la demande.';
+    status.textContent = error.message || 'Unable to send the request.';
   }
 }
 
@@ -808,17 +808,17 @@ async function refreshLatestAiComments() {
 
 async function refreshInviteRequests() {
   const container = document.getElementById('invite-requests-list');
-  container.textContent = 'Chargement...';
+  container.textContent = 'Loading...';
 
   try {
     const response = await apiFetch('/api/auth/invite-requests');
     const body = await response.json();
     if (!response.ok) {
-      throw new Error(body.error || 'Impossible de charger les demandes');
+      throw new Error(body.error || 'Unable to load requests');
     }
     renderInviteRequests(body.requests || []);
   } catch (error) {
-    container.textContent = error.message || 'Impossible de charger les demandes';
+    container.textContent = error.message || 'Unable to load requests';
   }
 }
 
@@ -827,7 +827,7 @@ function renderInviteRequests(requests) {
   container.innerHTML = '';
 
   if (!requests.length) {
-    container.textContent = 'Aucune demande pour le moment.';
+    container.textContent = 'No requests yet.';
     return;
   }
 
@@ -865,12 +865,12 @@ function renderInviteRequests(requests) {
 
       const createCode = document.createElement('button');
       createCode.type = 'button';
-      createCode.textContent = 'Envoyer le code';
+      createCode.textContent = 'Send code';
       createCode.addEventListener('click', () => createInviteCodeForRequest(request, item));
 
       const reject = document.createElement('button');
       reject.type = 'button';
-      reject.textContent = 'Refuser';
+      reject.textContent = 'Reject';
       reject.addEventListener('click', () => updateInviteRequestStatus(request.id, 'rejected'));
 
       actions.append(createCode, reject);
@@ -890,7 +890,7 @@ async function updateInviteRequestStatus(requestId, status) {
 
   if (!response.ok) {
     const body = await response.json();
-    alert(body.error || 'Impossible de mettre a jour la demande');
+    alert(body.error || 'Unable to update the request');
     return;
   }
 
@@ -909,7 +909,7 @@ async function createInviteCodeForRequest(request, item) {
   const body = await response.json();
 
   if (!response.ok) {
-    alert(body.error || 'Impossible de creer le code');
+    alert(body.error || 'Unable to create the code');
     return;
   }
 
@@ -918,8 +918,8 @@ async function createInviteCodeForRequest(request, item) {
   renderMailtoAction(
     item,
     copied
-      ? `Code copie : ${code}. Choisis comment envoyer le mail pre-rempli.`
-      : `Code cree : ${code}. Choisis comment envoyer le mail pre-rempli.`,
+      ? `Code copied: ${code}. Choose how to send the prefilled email.`
+      : `Code created: ${code}. Choose how to send the prefilled email.`,
     buildInviteCodeEmail(request.email, code),
   );
 
@@ -940,18 +940,18 @@ function buildAdminInviteRequestEmail(email, message) {
 
   return {
     to: ADMIN_EMAIL,
-    subject: 'Second Brain - nouvelle demande de code',
+    subject: 'Second Brain - new invitation request',
     body: [
-      'Nouvelle demande de code d invitation pour Second Brain.',
+      'A new invitation code request was submitted for Second Brain.',
       '',
-      `Email du demandeur : ${email}`,
+      `Requester email: ${email}`,
       '',
-      'Message :',
-      message || '(aucun message)',
+      'Message:',
+      message || '(no message)',
       '',
-      `Ouvrir l app / admin : ${APP_URL}`,
+      `Open the app/admin area: ${APP_URL}`,
       '',
-      'Connecte-toi avec ton compte admin, puis utilise le panneau Demandes d invitation.',
+      'Sign in with your admin account, then use the Invitation Requests panel.',
     ].join('\n'),
   };
 }
@@ -959,17 +959,17 @@ function buildAdminInviteRequestEmail(email, message) {
 function buildInviteCodeEmail(email, code) {
   return {
     to: email,
-    subject: 'Ton code d activation Second Brain',
+    subject: 'Your Second Brain activation code',
     body: [
-      'Bonjour,',
+      'Hello,',
       '',
-      'Voici ton code d activation pour Second Brain :',
+      'Here is your activation code for Second Brain:',
       '',
       code,
       '',
-      `Ouvre l app ici : ${APP_URL}`,
+      `Open the app here: ${APP_URL}`,
       '',
-      'Dans la section Premiere connexion, colle ce code puis choisis ton mot de passe.',
+      'In the First-Time Access section, paste this code and choose your password.',
     ].join('\n'),
   };
 }
@@ -1055,9 +1055,9 @@ function createEmailActions(email) {
   actions.className = 'email-action-panel';
 
   actions.append(
-    createEmailLink(buildGmailHref(email), 'Ouvrir dans Gmail', true),
-    createEmailLink(buildOutlookHref(email), 'Ouvrir dans Outlook', true),
-    createEmailLink(buildMailtoHref(email), "Ouvrir l'application mail", false),
+    createEmailLink(buildGmailHref(email), 'Open in Gmail', true),
+    createEmailLink(buildOutlookHref(email), 'Open in Outlook', true),
+    createEmailLink(buildMailtoHref(email), 'Open mail app', false),
     createCopyEmailButton(email)
   );
 
@@ -1080,18 +1080,18 @@ function createCopyEmailButton(email) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'email-action-copy';
-  button.textContent = 'Copier le message';
+  button.textContent = 'Copy message';
   button.addEventListener('click', async () => {
     const copied = await copyToClipboard(formatEmailForCopy(email));
-    button.textContent = copied ? 'Message copie' : 'Copie impossible';
+    button.textContent = copied ? 'Message copied' : 'Copy failed';
   });
   return button;
 }
 
 function formatEmailForCopy(email) {
   return [
-    `A : ${email.to}`,
-    `Objet : ${email.subject}`,
+    `To: ${email.to}`,
+    `Subject: ${email.subject}`,
     '',
     email.body,
   ].join('\n');
@@ -1326,7 +1326,7 @@ async function apiFetch(path, options = {}, retrying = false) {
   if (!retrying) {
     clearSession();
     showAccessGate();
-    setLoginStatus('Session expiree. Connecte-toi a nouveau.');
+    setLoginStatus('Session expired. Please sign in again.');
   }
   return response;
 }

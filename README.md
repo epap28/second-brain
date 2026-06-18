@@ -109,11 +109,11 @@ To create invitation codes:
 
 1. Sign in as the admin user.
 2. Open the `Invite requests` panel on the home screen.
-3. Click `Envoyer le code` on a pending request.
+3. Click `Send code` on a pending request.
 4. The code is copied and the app shows Gmail, Outlook, local mail app, and copy-message actions.
 5. Open one of the email actions, then click `Send` in your email app.
 
-Users create their account from the `Premiere connexion` section with the invitation code and a new password.
+Users create their account from the `First-Time Access` section with the invitation code and a new password.
 
 ## Git deploy
 
