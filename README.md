@@ -69,7 +69,7 @@ npx.cmd wrangler secret put SETUP_TOKEN
 
 If `SETUP_TOKEN` is not configured, the Worker can still use the old `SECOND_BRAIN_PASSWORD` secret as the setup token.
 
-Invite request emails use `mailto:` links. Requests are stored in D1, then the app shows a link that opens a prefilled email to the admin.
+Invite request emails use client-side email actions. Requests are stored in D1, then the app shows links for Gmail, Outlook, the local mail app, and copying the message.
 
 Deploy the Worker:
 
@@ -110,8 +110,8 @@ To create invitation codes:
 1. Sign in as the admin user.
 2. Open the `Invite requests` panel on the home screen.
 3. Click `Envoyer le code` on a pending request.
-4. The code is copied and the app shows a link to open a prefilled email to the requester.
-5. Click `Send` in your email app.
+4. The code is copied and the app shows Gmail, Outlook, local mail app, and copy-message actions.
+5. Open one of the email actions, then click `Send` in your email app.
 
 Users create their account from the `Premiere connexion` section with the invitation code and a new password.
 

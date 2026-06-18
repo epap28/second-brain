@@ -106,9 +106,38 @@ body {
   font-size: 0.9rem;
 }
 
-.mailto-link {
+.email-action-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.email-action-link,
+.email-action-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: rgba(99, 102, 241, 0.1);
   color: var(--accent-strong);
   font-weight: 600;
+  text-decoration: none;
+  box-shadow: none;
+}
+
+.email-action-copy {
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.email-action-link:hover,
+.email-action-copy:hover {
+  background: rgba(99, 102, 241, 0.18);
+  box-shadow: none;
 }
 
 .app-header {

@@ -172,9 +172,8 @@ async function handleInviteRequestSubmit(event) {
 
     renderMailtoStatus(
       status,
-      'Demande enregistree. Clique ici pour ouvrir le mail a envoyer a l admin :',
+      'Demande enregistree. Choisis comment prevenir l admin :',
       buildAdminInviteRequestEmail(email, message),
-      'Ouvrir le mail'
     );
   } catch (error) {
     status.textContent = error.message || 'Impossible d envoyer la demande.';
@@ -919,10 +918,9 @@ async function createInviteCodeForRequest(request, item) {
   renderMailtoAction(
     item,
     copied
-      ? `Code copie : ${code}. Clique sur le lien pour ouvrir le mail pre-rempli.`
-      : `Code cree : ${code}. Clique sur le lien pour ouvrir le mail pre-rempli.`,
+      ? `Code copie : ${code}. Choisis comment envoyer le mail pre-rempli.`
+      : `Code cree : ${code}. Choisis comment envoyer le mail pre-rempli.`,
     buildInviteCodeEmail(request.email, code),
-    'Ouvrir le mail'
   );
 
   const status = item.querySelector('.invite-request-status');
@@ -937,10 +935,10 @@ async function createInviteCodeForRequest(request, item) {
 
 function buildAdminInviteRequestEmail(email, message) {
   if (!ADMIN_EMAIL) {
-    return '';
+    return null;
   }
 
-  return buildMailtoHref({
+  return {
     to: ADMIN_EMAIL,
     subject: 'Second Brain - nouvelle demande de code',
     body: [
@@ -955,11 +953,11 @@ function buildAdminInviteRequestEmail(email, message) {
       '',
       'Connecte-toi avec ton compte admin, puis utilise le panneau Demandes d invitation.',
     ].join('\n'),
-  });
+  };
 }
 
 function buildInviteCodeEmail(email, code) {
-  return buildMailtoHref({
+  return {
     to: email,
     subject: 'Ton code d activation Second Brain',
     body: [
@@ -973,38 +971,67 @@ function buildInviteCodeEmail(email, code) {
       '',
       'Dans la section Premiere connexion, colle ce code puis choisis ton mot de passe.',
     ].join('\n'),
-  });
+  };
 }
 
-function buildMailtoHref({ to, subject, body }) {
-  if (!to) {
+function buildMailtoHref(email) {
+  if (!email?.to) {
     return '';
   }
 
   const query = [
-    `subject=${encodeURIComponent(subject)}`,
-    `body=${encodeURIComponent(body)}`,
+    `subject=${encodeURIComponent(email.subject)}`,
+    `body=${encodeURIComponent(email.body)}`,
   ].join('&');
 
-  return `mailto:${to}?${query}`;
+  return `mailto:${encodeURIComponent(email.to)}?${query}`;
 }
 
-function renderMailtoStatus(container, text, href, linkText) {
+function buildGmailHref(email) {
+  if (!email?.to) {
+    return '';
+  }
+
+  const query = [
+    'view=cm',
+    'fs=1',
+    `to=${encodeURIComponent(email.to)}`,
+    `su=${encodeURIComponent(email.subject)}`,
+    `body=${encodeURIComponent(email.body)}`,
+  ].join('&');
+
+  return `https://mail.google.com/mail/?${query}`;
+}
+
+function buildOutlookHref(email) {
+  if (!email?.to) {
+    return '';
+  }
+
+  const query = [
+    `to=${encodeURIComponent(email.to)}`,
+    `subject=${encodeURIComponent(email.subject)}`,
+    `body=${encodeURIComponent(email.body)}`,
+  ].join('&');
+
+  return `https://outlook.live.com/mail/0/deeplink/compose?${query}`;
+}
+
+function renderMailtoStatus(container, text, email) {
   container.innerHTML = '';
   const message = document.createElement('span');
   message.textContent = text;
   container.appendChild(message);
 
-  if (!href) {
+  if (!email) {
     return;
   }
 
-  container.appendChild(document.createTextNode(' '));
-  container.appendChild(createMailtoLink(href, linkText));
+  container.appendChild(createEmailActions(email));
 }
 
-function renderMailtoAction(container, text, href, linkText) {
-  const existing = container.querySelector('.mailto-action');
+function renderMailtoAction(container, text, email) {
+  const existing = container.querySelector('.email-action-panel');
   if (existing) {
     existing.remove();
   }
@@ -1016,20 +1043,58 @@ function renderMailtoAction(container, text, href, linkText) {
   message.textContent = text;
   wrapper.appendChild(message);
 
-  if (href) {
-    wrapper.appendChild(document.createTextNode(' '));
-    wrapper.appendChild(createMailtoLink(href, linkText));
+  if (email) {
+    wrapper.appendChild(createEmailActions(email));
   }
 
   container.appendChild(wrapper);
 }
 
-function createMailtoLink(href, text) {
+function createEmailActions(email) {
+  const actions = document.createElement('span');
+  actions.className = 'email-action-panel';
+
+  actions.append(
+    createEmailLink(buildGmailHref(email), 'Ouvrir dans Gmail', true),
+    createEmailLink(buildOutlookHref(email), 'Ouvrir dans Outlook', true),
+    createEmailLink(buildMailtoHref(email), "Ouvrir l'application mail", false),
+    createCopyEmailButton(email)
+  );
+
+  return actions;
+}
+
+function createEmailLink(href, text, opensNewTab) {
   const link = document.createElement('a');
   link.href = href;
-  link.className = 'mailto-link';
+  link.className = 'email-action-link';
   link.textContent = text;
+  if (opensNewTab) {
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+  }
   return link;
+}
+
+function createCopyEmailButton(email) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'email-action-copy';
+  button.textContent = 'Copier le message';
+  button.addEventListener('click', async () => {
+    const copied = await copyToClipboard(formatEmailForCopy(email));
+    button.textContent = copied ? 'Message copie' : 'Copie impossible';
+  });
+  return button;
+}
+
+function formatEmailForCopy(email) {
+  return [
+    `A : ${email.to}`,
+    `Objet : ${email.subject}`,
+    '',
+    email.body,
+  ].join('\n');
 }
 
 async function copyToClipboard(text) {
