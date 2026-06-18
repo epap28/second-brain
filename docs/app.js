@@ -170,8 +170,12 @@ async function handleInviteRequestSubmit(event) {
       return;
     }
 
-    status.textContent = 'Demande enregistree. Ton application mail va s ouvrir pour prevenir l admin.';
-    openAdminInviteRequestEmail(email, message);
+    renderMailtoStatus(
+      status,
+      'Demande enregistree. Clique ici pour ouvrir le mail a envoyer a l admin :',
+      buildAdminInviteRequestEmail(email, message),
+      'Ouvrir le mail'
+    );
   } catch (error) {
     status.textContent = error.message || 'Impossible d envoyer la demande.';
   }
@@ -863,7 +867,7 @@ function renderInviteRequests(requests) {
       const createCode = document.createElement('button');
       createCode.type = 'button';
       createCode.textContent = 'Envoyer le code';
-      createCode.addEventListener('click', () => createInviteCodeForRequest(request));
+      createCode.addEventListener('click', () => createInviteCodeForRequest(request, item));
 
       const reject = document.createElement('button');
       reject.type = 'button';
@@ -894,7 +898,7 @@ async function updateInviteRequestStatus(requestId, status) {
   await refreshInviteRequests();
 }
 
-async function createInviteCodeForRequest(request) {
+async function createInviteCodeForRequest(request, item) {
   const response = await apiFetch('/api/auth/invites', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -912,22 +916,31 @@ async function createInviteCodeForRequest(request) {
 
   const code = body.invite.code;
   const copied = await copyToClipboard(code);
-  alert(
+  renderMailtoAction(
+    item,
     copied
-      ? `Code d invitation copie : ${code}\n\nTon application mail va s ouvrir. Clique sur Envoyer pour transmettre le code.`
-      : `Code d invitation cree : ${code}\n\nTon application mail va s ouvrir. Clique sur Envoyer pour transmettre le code.`
+      ? `Code copie : ${code}. Clique sur le lien pour ouvrir le mail pre-rempli.`
+      : `Code cree : ${code}. Clique sur le lien pour ouvrir le mail pre-rempli.`,
+    buildInviteCodeEmail(request.email, code),
+    'Ouvrir le mail'
   );
-  openInviteCodeEmail(request.email, code);
 
-  await refreshInviteRequests();
+  const status = item.querySelector('.invite-request-status');
+  if (status) {
+    status.textContent = 'approved';
+  }
+  const actions = item.querySelector('.invite-request-actions');
+  if (actions) {
+    actions.remove();
+  }
 }
 
-function openAdminInviteRequestEmail(email, message) {
+function buildAdminInviteRequestEmail(email, message) {
   if (!ADMIN_EMAIL) {
-    return false;
+    return '';
   }
 
-  return openMailto({
+  return buildMailtoHref({
     to: ADMIN_EMAIL,
     subject: 'Second Brain - nouvelle demande de code',
     body: [
@@ -945,8 +958,8 @@ function openAdminInviteRequestEmail(email, message) {
   });
 }
 
-function openInviteCodeEmail(email, code) {
-  return openMailto({
+function buildInviteCodeEmail(email, code) {
+  return buildMailtoHref({
     to: email,
     subject: 'Ton code d activation Second Brain',
     body: [
@@ -963,9 +976,9 @@ function openInviteCodeEmail(email, code) {
   });
 }
 
-function openMailto({ to, subject, body }) {
+function buildMailtoHref({ to, subject, body }) {
   if (!to) {
-    return false;
+    return '';
   }
 
   const query = [
@@ -973,8 +986,50 @@ function openMailto({ to, subject, body }) {
     `body=${encodeURIComponent(body)}`,
   ].join('&');
 
-  window.location.href = `mailto:${to}?${query}`;
-  return true;
+  return `mailto:${to}?${query}`;
+}
+
+function renderMailtoStatus(container, text, href, linkText) {
+  container.innerHTML = '';
+  const message = document.createElement('span');
+  message.textContent = text;
+  container.appendChild(message);
+
+  if (!href) {
+    return;
+  }
+
+  container.appendChild(document.createTextNode(' '));
+  container.appendChild(createMailtoLink(href, linkText));
+}
+
+function renderMailtoAction(container, text, href, linkText) {
+  const existing = container.querySelector('.mailto-action');
+  if (existing) {
+    existing.remove();
+  }
+
+  const wrapper = document.createElement('p');
+  wrapper.className = 'mailto-action';
+
+  const message = document.createElement('span');
+  message.textContent = text;
+  wrapper.appendChild(message);
+
+  if (href) {
+    wrapper.appendChild(document.createTextNode(' '));
+    wrapper.appendChild(createMailtoLink(href, linkText));
+  }
+
+  container.appendChild(wrapper);
+}
+
+function createMailtoLink(href, text) {
+  const link = document.createElement('a');
+  link.href = href;
+  link.className = 'mailto-link';
+  link.textContent = text;
+  return link;
 }
 
 async function copyToClipboard(text) {
